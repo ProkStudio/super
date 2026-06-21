@@ -1,0 +1,14 @@
+node_modules/
+dist/
+release/
+scripts/.cache/
+resources/python/win/
+resources/python/browsers/
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+_truwas_extract/
+debug/
+*.jsc

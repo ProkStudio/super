@@ -1,0 +1,974 @@
+{
+  "app": {
+    "name": "TechPro",
+    "version": "v2.0.4"
+  },
+  "nav": {
+    "workspace": "WORKSPACE",
+    "content": "CONTENT",
+    "analytics": "ANALYTICS",
+    "profiles": "Profiles",
+    "accounts": "Accounts",
+    "automation": "Automation",
+    "tasks": "Tasks",
+    "jokes": "Jokes",
+    "uniqueizer": "Uniqueizer",
+    "results": "Results",
+    "analyticsPage": "Analytics",
+    "cabinet": "Cabinet",
+    "guide": "Cheat sheet",
+    "settings": "Settings"
+  },
+  "search": {
+    "placeholder": "Search...",
+    "hint": "Ctrl+K"
+  },
+  "command": {
+    "groupNavigation": "Navigation",
+    "groupSettings": "Settings",
+    "groupActions": "Actions",
+    "noResults": "No results",
+    "hint": "↑↓ select · Enter open",
+    "createBackup": "Create backup",
+    "runChecker": "Run checker"
+  },
+  "status": {
+    "python": "Python",
+    "ffmpeg": "FFmpeg",
+    "playwright": "Playwright",
+    "mostlogin": "MostLogin"
+  },
+  "cabinet": {
+    "subtitle": "License and application info",
+    "activation": "Activation: not required (dev mode)",
+    "hint": "License data and workspace stats appear here.",
+    "profiles": "Profiles",
+    "accounts": "Accounts",
+    "sessions": "Result sessions",
+    "videos": "Videos"
+  },
+  "updater": {
+    "section": "Updates",
+    "title": "Update available",
+    "readyTitle": "Update ready",
+    "body": "Version {{version}} is available. You are on {{current}}.",
+    "readyBody": "Version {{version}} downloaded. Restart TechPro to install.",
+    "dataSafe": "Settings, accounts, and presets are kept — only the app is updated.",
+    "download": "Download and install",
+    "downloading": "Downloading…",
+    "restart": "Restart now",
+    "later": "Later",
+    "openReleases": "Open on GitHub",
+    "autoLabel": "Automatic updates",
+    "autoHint": "Check GitHub on startup and download new versions automatically. Install on restart.",
+    "autoHintShort": "Check on startup and auto-download",
+    "autoEnabledToast": "Automatic updates enabled",
+    "autoDisabledToast": "Automatic updates disabled",
+    "checkNow": "Check for updates",
+    "checking": "Checking…",
+    "upToDate": "You are on the latest version",
+    "error": "Could not check for updates",
+    "devOnly": "Updates work only in the installed app"
+  },
+  "common": {
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "refresh": "Refresh",
+    "start": "Start",
+    "stop": "Stop",
+    "export": "Export",
+    "import": "Import",
+    "delete": "Delete",
+    "create": "Create",
+    "test": "Test",
+    "loading": "Loading...",
+    "all": "All",
+    "search": "Search...",
+    "actions": "Actions",
+    "move": "Move",
+    "open": "Open",
+    "language": "Language",
+    "theme": "Theme"
+  },
+  "profiles": {
+    "title": "Browser Profiles",
+    "subtitle": "Manage MostLogin, Vision and ZennoBrowser profiles",
+    "quickCreate": "Quick profile creation",
+    "fromNumber": "From number",
+    "quantity": "Quantity",
+    "perProxy": "Prof/proxy",
+    "fromFile": "From file",
+    "fromSpaceProxy": "From SpaceProxy",
+    "proxyList": "Proxy list",
+    "noProxies": "No proxies",
+    "createBtn": "Create",
+    "notFound": "No profiles found. Click Refresh or create new ones.",
+    "showBans": "Show bans",
+    "deadProxies": "Dead proxies",
+    "replaceProxy": "Replace proxy",
+    "selected": "Selected",
+    "selectAllPage": "Select all on page",
+    "selectAllFiltered": "Select all filtered",
+    "deselectAllFiltered": "Deselect all",
+    "linkAccount": "Account (reference)",
+    "noLinkedAccount": "Not linked",
+    "markReady": "Ready",
+    "markReadyDone": "Profile marked as ready",
+    "workflowSteps": "Create profile → Launch → Sign in → Status Uploaded → Automation",
+    "allProfiles": "All profiles",
+    "allStatuses": "All statuses",
+    "profileCount": "{{count}} profiles",
+    "profileCount_one": "{{count}} profile",
+    "columnProfile": "Profile",
+    "columnFolder": "Folder",
+    "columnProxy": "Proxy",
+    "columnStatus": "Status",
+    "columnBrowser": "Browser",
+    "folders": "Folders",
+    "addFolder": "Add folder",
+    "folderName": "Folder name",
+    "moveToFolder": "Move to folder",
+    "folderHint": "Click a folder to filter. Ctrl+click for multi-select.",
+    "noFolder": "No folder",
+    "proxyPlaceholder": "ip:port:user:pass\nsocks5://ip:port\nhttp://user:pass@ip:port",
+    "previewNames": "Name preview: set quantity to preview numbering",
+    "ipLimit": "IP limit",
+    "creatingTitle": "Creating MostLogin profiles",
+    "processLog": "Process log",
+    "mostloginOffline": "MostLogin offline",
+    "spaceProxyError": "SpaceProxy error",
+    "folderCreated": "Folder created",
+    "movedToFolder": "Profiles moved",
+    "proxyReady": "PROXY READY",
+    "noProxy": "NO PROXY",
+    "proxyNotSet": "No proxy",
+    "assignProxies": "Assign proxies",
+    "randomizeProxies": "Randomize",
+    "assignProxiesDone": "Proxies assigned: {{count}}",
+    "assignProxiesNeedSelection": "Select profiles and add proxies to the list",
+    "assignProxiesMostloginOnly": "Proxy assignment is only supported for MostLogin",
+    "addProxy": "Add at least one proxy to the list",
+    "replaceFromSpace": "Replace from SpaceProxy",
+    "replaceFromSpaceDone": "Proxies replaced: {{count}}",
+    "stopProfile": "Stop",
+    "notes": "Notes",
+    "deleteSelected": "Delete selected",
+    "deleteConfirm": "Delete {{count}} profiles from the browser? This cannot be undone.",
+    "deleted": "Deleted profiles: {{count}}",
+    "replaceBans": "Replace bans",
+    "replaceBansDone": "Deleted: {{deleted}}, proxies replaced: {{updated}}",
+    "deadProxyTitle": "Dead proxies",
+    "deadProxyHint": "Proxy IPs that can no longer be used. Profiles using these IPs will be replaced.",
+    "deadProxyEmpty": "List is empty",
+    "deadProxyAdd": "Add IP",
+    "deadProxyReplace": "Replace on all profiles",
+    "deadProxyProfiles": "Profiles with dead IPs: {{count}}",
+    "hideBans": "Hide bans",
+    "statusLabels": {
+      "all": "All statuses",
+      "none": "No status",
+      "uploaded": "Uploaded",
+      "ban": "Banned",
+      "running": "Running",
+      "ready": "Ready"
+    }
+  },
+  "accounts": {
+    "title": "Accounts",
+    "googleTitle": "Google Accounts",
+    "subtitle": "Gmail account catalog. Total: {{count}}",
+    "searchEmail": "Search by email...",
+    "password": "Password",
+    "totp": "TOTP 2FA",
+    "allFolders": "All accounts",
+    "folderName": "Folder name",
+    "defaultFolder": "Import",
+    "importTitle": "Import accounts",
+    "importHint": "Smart parser: email, password and TOTP from any format. Delimiters: , ; | : tab. TOTP is base32 secret (14–52 chars).",
+    "importPlaceholder": "email@gmail.com,password123,JBSWY3DPEHPK3PXP",
+    "importEmpty": "Could not parse any lines",
+    "imported": "Imported: {{count}}",
+    "importSkipped": "Skipped lines: {{count}}",
+    "importFromFile": "From file",
+    "exportCsv": "Export CSV",
+    "exportDone": "CSV exported",
+    "mergeBlocks": "Merge blocks",
+    "mergeBlocksTitle": "Merge blocks ({{count}})",
+    "mergeBlocksName": "Merged block name",
+    "mergeBlocksDone": "Blocks merged",
+    "mergeBlocksMin": "Select at least 2 blocks (Ctrl+click folders)",
+    "renameBlock": "Rename",
+    "blockRenamed": "Folder renamed",
+    "openProfile": "Open profile",
+    "openProfileFail": "No profile linked",
+    "profileOpened": "Profile started",
+    "checkLog": "Check log",
+    "deleteReady": "Delete ready (READY)",
+    "readyDeleted": "Ready accounts deleted",
+    "profile": "Profile",
+    "noAccounts": "No accounts found. Click Import.",
+    "pagination": "Showing {{shown}} of {{total}}",
+    "prev": "Back",
+    "next": "Next",
+    "copied": "Copied",
+    "expandReady": "Click to expand",
+    "collapseReady": "Collapse",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "checkStatuses": "Check statuses",
+    "checking": "Checking…",
+    "checkDone": "Checked: {{total}} · active: {{active}} · no channel: {{noChannel}} · issues: {{banned}}",
+    "checkFailed": "Failed to check accounts",
+    "bannedCount": "Issues: {{count}}",
+    "noChannelCount": "No channel: {{count}}",
+    "checkHint": "Link account to a MostLogin profile on the Profiles page",
+    "checkThreadsHint": "How many MostLogin profiles to open at once during check",
+    "totpCopy": "Copy code",
+    "totpAutofill": "Insert code into open browser profile",
+    "totpAutofillOk": "Code {{code}} inserted into browser",
+    "totpAutofillFail": "Failed to insert 2FA code",
+    "totpInvalidSecret": "Use base32 secret from Google Authenticator",
+    "statusLabels": {
+      "active": "Active",
+      "banned": "Banned",
+      "disabled": "Disabled",
+      "logged_out": "Logged out",
+      "verify": "Verification",
+      "no_profile": "No profile",
+      "no_channel": "No channel",
+      "error": "Error",
+      "unknown": "Not checked"
+    }
+  },
+  "automation": {
+    "title": "Task Automation",
+    "subtitle": "Configure automatic browser behavior",
+    "threads": "Threads",
+    "modes": {
+      "scan_qr": "Scan QR",
+      "login": "Login",
+      "warmup": "Warm-up",
+      "channel_setup": "Channel Setup",
+      "upload_video": "Upload"
+    },
+    "terminal": "Activity Terminal",
+    "clear": "CLEAR",
+    "presetSelect": "Select preset...",
+    "presetManage": "Manage presets",
+    "presetName": "Preset name",
+    "presetSaved": "Preset saved",
+    "presetLoaded": "Preset loaded",
+    "presetDeleted": "Preset deleted",
+    "presetEmpty": "No saved presets",
+    "presetDeleteConfirm": "Delete preset \"{{name}}\"?",
+    "presetLoad": "Load",
+    "defaultPreset": "Preset",
+    "selectProfiles": "Select profiles to run",
+    "profileList": "Profiles for automation",
+    "readyOnly": "Ready only",
+    "searchProfile": "Search profile...",
+    "noReadyProfiles": "No ready profiles. Set status to Uploaded on Profiles page after login.",
+    "workflowHint": "1) Create a named profile → 2) Launch and sign in → 3) Set status Uploaded → 4) Select profiles here",
+    "selectAllPage": "Select all on page",
+    "selectAllFolder": "Select entire folder",
+    "deselectAllFolder": "Deselect folder",
+    "selected": "Selected",
+    "collapseProfiles": "Collapse",
+    "expandProfiles": "Expand",
+    "completed": "Automation completed",
+    "completedWithWarnings": "Completed with warnings — check the terminal",
+    "resultsBlockCreated": "Added to Results: block with {{count}} links",
+    "debugStudio": "Studio diagnostics",
+    "debugStudioHint": "Browser will open: log in to Google and open channel customization. Wait ~2 min.",
+    "debugStudioDone": "DOM saved to debug/studio-dom-debug.json",
+    "error": "Automation error",
+    "aiGenerating": "AI generating…",
+    "aiNoKey": "Set AI API key in Settings (API Keys → AI)",
+    "aiDone": "AI: добавлено {{count}} строк",
+    "stopped": "Automation stopped",
+    "browse": "Browse",
+    "scanQrDesc": "Opens profiles and waits for QR scan.",
+    "warmup": {
+      "title": "YouTube Shorts scroll behavior",
+      "duration": "Duration (minutes)",
+      "minTime": "Min time",
+      "maxTime": "Max time",
+      "watchOne": "Watch per video (seconds)",
+      "minSec": "Min seconds",
+      "maxSec": "Max seconds",
+      "interaction": "Interaction",
+      "likes": "Likes",
+      "subs": "Subscriptions",
+      "subProbability": "Subscribe probability"
+    },
+    "channel": {
+      "avatars": "Avatars",
+      "banners": "Banners",
+      "names": "Channel names",
+      "descriptions": "Channel descriptions",
+      "profileLink": "Profile link",
+      "avatarsEnabled": "Avatars",
+      "bannersEnabled": "Banners",
+      "selectFolder": "Photo folder (jpg, png, webp…)",
+      "selectPhotos": "Select photos",
+      "photosHint": "Images only, not videos. Pick a folder or individual files.",
+      "selectedPhotos": "Selected photos: {{count}}",
+      "files": "files",
+      "filesCount": "{{count}} files",
+      "aiCount": "AI count",
+      "fromFile": "From file",
+      "namesPlaceholder": "Channel name — one per line",
+      "descriptionsPlaceholder": "Welcome to my awesome channel!\nMy super cool bio!",
+      "linkTitle": "Link title",
+      "linkTitlePlaceholder": "My Telegram",
+      "linkUrls": "Link URLs",
+      "linkUrlsPlaceholder": "https://t.me/promo1\nhttps://t.me/promo2",
+      "createIfMissing": "Create channel (if missing)",
+      "uniqualizeImages": "Uniqualize photos before upload"
+    },
+    "upload": {
+      "folderTitle": "Video folder",
+      "selectFolder": "Select folder...",
+      "selectVideos": "Select videos",
+      "selectedVideos": "Selected videos: {{count}}",
+      "videosHint": "Pick a folder or specific files — when files are selected, only those are used",
+      "videos": "videos",
+      "videoCount": "{{count}} videos",
+      "warmupFeed": "Watch feed before and after upload (warm-up)",
+      "titles": "Video titles",
+      "folder": "Video folder",
+      "titlesPlaceholder": "Cool video {topic|content}\nVideo title 2",
+      "spintaxHint": "One title per line. Use {word1|word2} for random variants.",
+      "tagsOptional": "Tags (added to title as #hashtags)",
+      "tagsPlaceholder": "shorts, viral, trending — appended to the title",
+      "randomTags": "Random tag count per upload",
+      "minTags": "Min tags",
+      "maxTags": "Max tags",
+      "nonPublic": "Non-public upload",
+      "nonPublicHint": "Video won't be public — unlisted or private only",
+      "visibilityUnlisted": "Unlisted",
+      "visibilityPrivate": "Private",
+      "visibilityPublic": "Public"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure global app parameters, API keys and UI preferences",
+    "appearance": "Appearance",
+    "appearanceDesc": "Theme, colors, fonts, language",
+    "browser": "Browser",
+    "browserDesc": "Anti-detect browser selection",
+    "apiKeys": "API Keys",
+    "apiKeysDesc": "Service connections and tokens",
+    "notifications": "Notifications",
+    "notificationsDesc": "Telegram bot settings",
+    "autochecker": "Auto-checker",
+    "autocheckerDesc": "Scheduled video monitoring",
+    "system": "System",
+    "systemDesc": "Dependencies and status",
+    "backup": "Data & Backup",
+    "backupDesc": "Export, backup, restore",
+    "hotkeys": "Hotkeys",
+    "hotkeysDesc": "Application keyboard shortcuts",
+    "hotkeysHint": "Press ? anywhere in the app to open the cheat sheet.",
+    "keyConfigured": "Configured",
+    "keyMissing": "Not set",
+    "aiProvider": "AI (LLM API)",
+    "aiProviderDesc": "OpenAI-compatible API: DeepSeek, OpenRouter, etc. Set Base URL, model and API key.",
+    "aiBaseUrl": "Base URL",
+    "aiModel": "Model",
+    "aiApiKey": "API key",
+    "aiTestOk": "Connection successful",
+    "aiTestFail": "Connection failed",
+    "aiPreset": {
+      "deepseek": "DeepSeek",
+      "openrouter": "OpenRouter (Nemotron free)"
+    },
+    "installed": "Installed",
+    "notFound": "Not found",
+    "ffmpegPath": "FFmpeg path",
+    "ffmpegPathDesc": "Leave empty to use bundled FFmpeg",
+    "browse": "Browse",
+    "validateYoutube": "YouTube Data API",
+    "youtubeOk": "Key is valid",
+    "youtubeFail": "Key is invalid",
+    "exportResultsCsv": "Export results (CSV)",
+    "fullBackup": "Full backup",
+    "createBackup": "Create backup",
+    "restoreBackup": "Restore",
+    "resetSettings": "Reset settings",
+    "reset": "Reset",
+    "autoBackup": "Auto-backup",
+    "autoBackupDesc": "Periodically save data to a folder",
+    "backupInterval": "Interval",
+    "backupFolder": "Backup folder",
+    "lastBackup": "Last backup",
+    "days": "days",
+    "restoreWarning": "Restore merges data. Duplicates are skipped. Local settings may be overwritten.",
+    "appearanceDisplayMode": "Display mode",
+    "appearanceDisplayModeDesc": "Switch between dark and light interface",
+    "appearanceTheme": "Theme",
+    "appearanceSaveCount": "Save ({{current}}/{{max}})",
+    "appearanceLanguage": "Language",
+    "appearanceLangRu": "Russian",
+    "appearanceLangEn": "English",
+    "appearanceFont": "Font",
+    "appearanceCustomFont": "Custom font",
+    "appearancePickFont": "Choose file",
+    "appearanceClearFont": "Reset",
+    "appearanceFontSize": "Font size",
+    "appearanceColors": {
+      "primary": "Primary",
+      "accent": "Accent",
+      "background": "Background",
+      "secondary": "Secondary",
+      "sidebar": "Sidebar"
+    },
+    "appearancePresets": {
+      "blue": "Blue",
+      "purple": "Purple",
+      "green": "Green",
+      "red": "Red",
+      "orange": "Orange",
+      "teal": "Teal",
+      "magenta": "Magenta"
+    }
+  },
+  "results": {
+    "title": "Results",
+    "sessions": "Sessions",
+    "videos": "videos",
+    "blocks": "Blocks",
+    "checker": "Checker",
+    "trash": "Trash",
+    "exportCsv": "Export CSV",
+    "createBlock": "Create block",
+    "newBlock": "New block",
+    "blockNameOptional": "Block name (optional)",
+    "blockNameDefault": "Default: current date",
+    "linksLabel": "Video links (one per line)",
+    "linksPlaceholder": "https://youtube.com/shorts/abc123\nhttps://youtube.com/shorts/def456 @MOSTLOGIN 7",
+    "linksHint": "Optional profile tag: @MOSTLOGIN 7",
+    "selectAll": "Select all",
+    "deleteSelected": "Delete selected ({{count}})",
+    "mergeBlocks": "Merge blocks",
+    "mergeBlocksTitle": "Merge blocks ({{count}})",
+    "mergeBlocksName": "Merged block name",
+    "mergeBlocksDone": "Blocks merged",
+    "mergeBlocksMin": "Select at least 2 blocks",
+    "runChecker": "Run checker",
+    "selectBlock": "Select block",
+    "selectBlockPlaceholder": "— select block —",
+    "selectBlockHint": "Select a block to check statistics",
+    "videoCount": "{{count}} videos",
+    "totalLinks": "Total links",
+    "checked": "Checked",
+    "totalViews": "Views",
+    "totalLikes": "Likes",
+    "totalComments": "Comments",
+    "zeroViews": "0 views",
+    "ageRestricted": "18+",
+    "activeVideos": "Active ({{count}})",
+    "unavailableVideos": "Unavailable ({{count}})",
+    "bannedVideos": "Channel banned ({{count}})",
+    "pendingVideos": "Not checked ({{count}})",
+    "statusUnavailable": "Video unavailable",
+    "statusBanned": "Channel banned",
+    "statusPending": "Not checked",
+    "noVideosInBlock": "No videos in block",
+    "blockNotFound": "Block not found",
+    "emptyBlocks": "No blocks yet. Create one with video links.",
+    "emptyTrash": "Trash is empty",
+    "noValidLinks": "No valid YouTube links found",
+    "blockCreated": "Block created: {{count}} videos",
+    "checkerDone": "Checker complete",
+    "checkerFailed": "Checker failed",
+    "noVideosToExport": "No videos to export",
+    "exported": "CSV exported",
+    "movedToTrash": "Moved to trash",
+    "restored": "Block restored",
+    "deletedPermanently": "Permanently deleted",
+    "blockDuplicated": "Block duplicated",
+    "linksCopied": "Links copied",
+    "blockUpdated": "Block updated",
+    "editBlock": "Edit block",
+    "copyLinks": "Copy links",
+    "duplicateBlock": "Duplicate block",
+    "exportAllCsv": "Export all blocks",
+    "checkAllBlocks": "Check all blocks",
+    "cancelChecker": "Cancel",
+    "checkerCancelled": "Check cancelled"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Statistics and charts for uploaded videos",
+    "refresh": "Refresh",
+    "refreshAll": "Refresh all statistics",
+    "exportCsv": "Export top videos",
+    "exportSnapshot": "Export snapshot",
+    "activeVideos": "Active",
+    "topVideos": "Top videos",
+    "totalVideos": "Total videos",
+    "totalViews": "Views",
+    "totalLikes": "Likes",
+    "totalComments": "Comments",
+    "profiles": "Profiles",
+    "sessions": "Sessions",
+    "banned": "Banned",
+    "days": "{{count}} days",
+    "viewsChart": "Views",
+    "newVideosChart": "New videos per day",
+    "lastUpdated": "Updated",
+    "updated": "Analytics updated",
+    "refreshFailed": "Refresh failed",
+    "exported": "CSV exported",
+    "noData": "No data. Auto blocks from uploads will appear here.",
+    "manualExcluded": "Manually created Results blocks are excluded"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "subtitle": "Create task chains from automation modes.",
+    "createTask": "Create task",
+    "createTaskBtn": "Create task",
+    "editTask": "Edit task",
+    "taskName": "Task name",
+    "taskNamePlaceholder": "Enter task name",
+    "onSchedule": "On schedule",
+    "time": "Time",
+    "date": "Date",
+    "datePlaceholder": "DD.MM.YYYY",
+    "repeatDaily": "Repeat daily",
+    "sleepAfter": "Sleep PC after",
+    "linkedProfiles": "Linked profiles ({{count}})",
+    "allFolders": "All folders",
+    "selectAll": "Select all ({{count}})",
+    "noProfilesLinked": "No profiles linked to this task.",
+    "noProfilesHint": "Select profiles from the list below.",
+    "modeChain": "Mode chain",
+    "noModes": "No modes. Add modes from the list below",
+    "activeTab": "Active",
+    "archiveTab": "Archive",
+    "empty": "No tasks yet",
+    "emptyHint": "Create a task for automation",
+    "run": "Run",
+    "profileCount": "{{count}} profiles",
+    "scheduledDaily": "Daily at {{time}}",
+    "scheduledOnce": "{{date}} at {{time}}",
+    "created": "Task created",
+    "updated": "Task updated",
+    "deleted": "Task deleted",
+    "completed": "Task completed: ✓ {{ok}} / ✗ {{fail}}",
+    "runFailed": "Failed to run task"
+  },
+  "jokes": {
+    "title": "Jokes",
+    "subtitle": "Generate warmup videos with jokes and styled overlays.",
+    "readyJokes": "Ready jokes",
+    "generate": "Generate",
+    "generating": "Generating…",
+    "settingsTitle": "Generation settings",
+    "instructionsTitle": "How to use",
+    "instructions": [
+      "Set the number of videos and duration per clip (3–30 sec).",
+      "Choose an output folder — generation requires it.",
+      "Optional: people photos (background), fonts (.ttf/.otf), and custom music (.mp3/.wav). Without custom music — auto-generated 8-bit melody.",
+      "In «Custom texts», enter one joke or phrase per line. Leave empty to use built-in templates.",
+      "Adjust music volume with the slider (custom tracks and 8-bit).",
+      "Click Generate and watch progress in the activity terminal.",
+      "Open finished files via Ready jokes or use them in automation (warm-up / upload)."
+    ],
+    "videoCount": "Number of videos",
+    "duration": "Duration (sec)",
+    "secondsShort": "s",
+    "musicVolume": "Music volume",
+    "musicChance": "Custom music chance",
+    "musicFolderLabel": "Custom music",
+    "outputFolder": "Output folder",
+    "outputPlaceholder": "Select folder…",
+    "outputRequired": "Select an output folder",
+    "noOutputFolder": "Select output folder first",
+    "photosFolder": "People photos",
+    "photosPlaceholder": "Photo folder",
+    "fontsFolder": "Fonts",
+    "fontsPlaceholder": "Folder with .ttf/.otf",
+    "musicFolder": "Custom music (opt.)",
+    "musicPlaceholder": "If empty — no audio",
+    "customTexts": "Custom texts",
+    "customTextsPlaceholder": "One joke or phrase per line\n— How are you?\n— Fine!",
+    "customTextsHint": "Leave empty for built-in templates. Texts cycle for each video.",
+    "starting": "Starting generation…",
+    "done": "Videos created: {{count}}",
+    "failed": "Generation failed",
+    "overlayText": "Overlay text",
+    "overlayTop": "Top",
+    "overlayBottom": "Bottom",
+    "overlayAdd": "Add pair",
+    "overlayRemove": "Remove pair",
+    "overlayClearAll": "Clear all",
+    "overlayAi": "AI generate pairs",
+    "overlayAiCount": "Pair count",
+    "overlayAiDone": "Added pairs: {{count}}",
+    "overlayAiInvalid": "Invalid AI response format"
+  },
+  "hotkeys": {
+    "title": "Hotkeys",
+    "navigation": "NAVIGATION",
+    "general": "GENERAL",
+    "search": "Search / command palette",
+    "sidebar": "Toggle sidebar",
+    "savePreset": "Save automation preset"
+  },
+  "help": {
+    "hint": "Press ? for cheat sheet"
+  },
+  "guide": {
+    "title": "Cheat sheet",
+    "sheetTitle": "Cheat sheet — {{topic}}",
+    "footerHint": "Press ? or Esc to close",
+    "topics": {
+      "profiles": {
+        "title": "Profiles",
+        "subtitle": "Profiles are physically created in the anti-detect browser (Vision/MostLogin/ZennoBrowser) via its API. Each profile is a separate isolated browser session.",
+        "sections": [
+          {
+            "title": "Creating profiles",
+            "items": [
+              "Paste proxies — format: ip:port:login:password, one per line",
+              "\"Start from number\" — profiles are named as numbers starting from it (5, 6, 7...)",
+              "\"Profiles per proxy\" = 3 → 3 profiles share one IP",
+              "Click \"Create\" — profiles appear in the browser and in the table"
+            ]
+          },
+          {
+            "title": "Folders",
+            "items": [
+              "Folders are real groups inside the browser, created there too",
+              "They appear in the filter above the table"
+            ]
+          },
+          {
+            "title": "Proxies",
+            "items": [
+              "\"Replace proxy\" — fully replaces the proxy on selected profiles",
+              "SpaceProxy — auto-fetches proxies via the API key from Settings",
+              "Dead proxy: the banned profile was deleted — replace its proxy on all other profiles still using it"
+            ]
+          }
+        ]
+      },
+      "accounts": {
+        "title": "Accounts",
+        "subtitle": "Storage for purchased Google accounts for convenient manual login via browser profiles. Before any automation, profiles must be logged in to YouTube.",
+        "sections": [
+          {
+            "title": "Import",
+            "items": [
+              "Click \"Import\", paste a list or upload a file",
+              "Smart formatter automatically extracts email, password, and TOTP secret from any format",
+              "After import, manually log in to each account via a browser profile"
+            ]
+          },
+          {
+            "title": "How to log in",
+            "items": [
+              "Open the profile in the browser, go to the Google login page",
+              "Click email → it copies, paste into browser",
+              "Click password → it copies, paste it",
+              "Click TOTP code → 6-digit code copies (updates every 30 sec)",
+              "After copying all three fields the row is marked \"Done\""
+            ]
+          },
+          {
+            "title": "Delete authorized",
+            "items": [
+              "Deletes accounts where all 3 fields were already copied — the ones you already logged into"
+            ]
+          },
+          {
+            "title": "Blocks",
+            "items": [
+              "Blocks are just a way to group batches of purchased accounts"
+            ]
+          }
+        ]
+      },
+      "automation": {
+        "title": "Automation",
+        "subtitle": "Run automated actions on authorized profiles. Profiles must already be logged in to YouTube before starting.",
+        "sections": [
+          {
+            "title": "How to run",
+            "items": [
+              "Select profiles in the left panel (YouTube-authorized only)",
+              "Configure the needed tab: Warmup, Channel, or Upload",
+              "Set thread count — the number of simultaneously running profiles",
+              "Click \"Run\""
+            ]
+          },
+          {
+            "title": "Warmup",
+            "items": [
+              "The account watches YouTube Shorts for the set duration",
+              "Set min/max session time and watch time per video",
+              "Enable likes and subscriptions with desired probability for natural behavior"
+            ]
+          },
+          {
+            "title": "Channel setup",
+            "items": [
+              "Uploads avatar and banner from specified folders",
+              "Sets channel name, description, and links",
+              "AI button generates name/description variants via DeepSeek API"
+            ]
+          },
+          {
+            "title": "Video upload",
+            "items": [
+              "Each profile receives one video from the folder",
+              "Title is picked randomly from the list (one per line)",
+              "\"Feed browsing\" — if the checkbox is on, after upload the account browses recommendations",
+              "Tags are picked randomly in a count from min to max"
+            ]
+          },
+          {
+            "title": "Presets",
+            "items": [
+              "Save settings from all tabs as a preset for quick switching",
+              "Ctrl+Shift+S — quick save of the active preset"
+            ]
+          }
+        ]
+      },
+      "tasks": {
+        "title": "Tasks",
+        "subtitle": "Unlike the \"Run\" button in Automation — a task chains multiple modes together and can run automatically on a schedule.",
+        "sections": [
+          {
+            "title": "How to create a task",
+            "items": [
+              "Click \"Create\", set a name and select profiles",
+              "Add chain steps: warmup → channel → upload",
+              "Drag steps to change execution order",
+              "Enable scheduling for auto-run at a set time or daily"
+            ]
+          },
+          {
+            "title": "Sleep After",
+            "items": [
+              "After the task completes, the computer automatically goes to Windows sleep mode"
+            ]
+          },
+          {
+            "title": "Statuses",
+            "items": [
+              "Idle → Running → Completed / Error / Stopped",
+              "Completed tasks go to Archive and are deleted automatically after 48 hours"
+            ]
+          }
+        ]
+      },
+      "jokes": {
+        "title": "Video Generator",
+        "subtitle": "Generate short joke videos for YouTube Shorts. Output — ready-made mp4 files in 9:16 format.",
+        "sections": [
+          {
+            "title": "Preparation",
+            "items": [
+              "Photo folder — images are used as video background",
+              "Music folder — custom background music (optional)",
+              "Fonts folder — for rendering joke text",
+              "Output folder — where finished videos are saved"
+            ]
+          },
+          {
+            "title": "Music probability",
+            "items": [
+              "Without a music folder — all videos use auto-generated 8-bit music",
+              "With folder: 50% = half the videos use custom music, half use 8-bit"
+            ]
+          },
+          {
+            "title": "Generation",
+            "items": [
+              "Set the number of videos and duration of each",
+              "Configure music volume",
+              "Click \"Create\" — finished mp4 files appear in the output folder"
+            ]
+          }
+        ]
+      },
+      "uniqueizer": {
+        "title": "Uniqualizer",
+        "subtitle": "Creates N unique copies from one source video with different visual and technical characteristics — for uploading to different YouTube channels.",
+        "sections": [
+          {
+            "title": "How to start",
+            "items": [
+              "Specify the input folder with source videos",
+              "Specify the output folder for results",
+              "\"Copies per video\" = 3 → each source produces 3 unique files",
+              "Configure effects across tabs and click \"Run\""
+            ]
+          },
+          {
+            "title": "Overlays",
+            "items": [
+              "Create your own overlay in the built-in editor (shapes, text, colors)",
+              "Or specify a folder with ready-made PNG/WebP files",
+              "\"Generate textures\" — unique textures are created automatically"
+            ]
+          },
+          {
+            "title": "Other effects",
+            "items": [
+              "Color correction — changes brightness and color balance",
+              "Audio — pitch shift, equalizer, sample rate change",
+              "Metadata — cleaning and replacing technical file data",
+              "Crop/zoom and micro-rotation — subtle geometric changes"
+            ]
+          },
+          {
+            "title": "Important",
+            "items": [
+              "Use the uniqualizer output folder as the video folder in the Upload section"
+            ]
+          }
+        ]
+      },
+      "results": {
+        "title": "Results",
+        "subtitle": "Log of all videos uploaded via the software. A block is created automatically with each Upload run — videos are added as they upload in real time.",
+        "sections": [
+          {
+            "title": "Blocks",
+            "items": [
+              "1 automation run = 1 block (if at least one video was uploaded)",
+              "Videos appear in the block immediately after uploading to YouTube",
+              "You can create a block manually and paste links",
+              "Block merge — combines multiple runs into one to view overall stats"
+            ]
+          },
+          {
+            "title": "Checker",
+            "items": [
+              "Select a block and click \"Check\" — updates stats via YouTube Data API",
+              "Shows current views, likes, comments",
+              "Marks banned channels and deleted videos",
+              "Requires YouTube Data API key in Settings"
+            ]
+          },
+          {
+            "title": "Export",
+            "items": [
+              "\"Export CSV\" button — downloads all results as a spreadsheet"
+            ]
+          }
+        ]
+      },
+      "analytics": {
+        "title": "Analytics",
+        "subtitle": "Summary statistics for all videos. Data comes from the checker — the \"Refresh\" button queries YouTube API for fresh data.",
+        "sections": [
+          {
+            "title": "Metrics",
+            "items": [
+              "Totals across all blocks: videos, views, likes, comments",
+              "Active profiles, sessions, banned profiles",
+              "Top 10 videos by views"
+            ]
+          },
+          {
+            "title": "Charts",
+            "items": [
+              "Views by day — filter 7 / 30 / 90 days",
+              "New videos by day",
+              "\"Refresh\" — queries fresh data from YouTube API (API key in Settings required)"
+            ]
+          }
+        ]
+      },
+      "settings": {
+        "title": "Settings",
+        "subtitle": "Application configuration. Start here — without API keys most features will not work.",
+        "sections": [
+          {
+            "title": "Appearance",
+            "items": [
+              "Light/dark mode, color theme (6 presets)",
+              "Custom colors — set your own color for each UI element",
+              "Font: mono, sans-serif, or upload your own TTF/OTF file",
+              "Text size and interface language (RU / EN)"
+            ]
+          },
+          {
+            "title": "Browser",
+            "items": [
+              "Select active browser: Vision, MostLogin, or ZennoBrowser",
+              "Enter the API key — connection status is shown immediately"
+            ]
+          },
+          {
+            "title": "API keys",
+            "items": [
+              "YouTube Data API — for the checker in Results and Analytics",
+              "DeepSeek API — for AI text generation in Automation and Uniqualizer",
+              "SpaceProxy API — for auto-loading proxies in the Profiles section"
+            ]
+          },
+          {
+            "title": "Notifications",
+            "items": [
+              "Telegram Bot Token + Chat ID — notifications about checker results",
+              "Notifications are sent when the auto-checker finds bans or finishes a run"
+            ]
+          },
+          {
+            "title": "Auto-checker",
+            "items": [
+              "Automatically checks videos via YouTube API on a schedule",
+              "Configure interval (hours), which blocks to check: all, latest, or selected",
+              "Enable \"Bans only\" — notifications only when bans are detected",
+              "\"Run now\" button — manual check run"
+            ]
+          },
+          {
+            "title": "System",
+            "items": [
+              "Shows dependency status: Python, FFmpeg, Playwright",
+              "Without FFmpeg, Uniqualizer and Video Generator will not work",
+              "Without Playwright, Automation will not work"
+            ]
+          },
+          {
+            "title": "Data",
+            "items": [
+              "Create backup — saves all accounts, blocks, videos, and settings to a JSON file",
+              "Restore from backup — loads a JSON file and restores everything",
+              "Auto-backup — set a folder, backup is created automatically on schedule",
+              "Export CSV — export accounts or results as a spreadsheet",
+              "Reset settings — resets theme, fonts, and appearance to defaults"
+            ]
+          }
+        ]
+      },
+      "cabinet": {
+        "title": "Cabinet",
+        "subtitle": "Overall statistics for uploaded videos and automation runs.",
+        "sections": [
+          {
+            "title": "Statistics",
+            "items": [
+              "Total automation runs",
+              "Total videos uploaded via the software",
+              "Views, likes, comments — totals across all Results blocks",
+              "Manually added links are excluded — only videos uploaded via automation are counted",
+              "\"Refresh\" button — fetches fresh data via YouTube API"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

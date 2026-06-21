@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --nexus-bg: #0a0a0a;
+  --nexus-panel: #111111;
+  --nexus-card: #141414;
+  --nexus-sidebar: #0d0d0d;
+  --nexus-primary: #a855f7;
+  --nexus-accent: #a855f7;
+  --nexus-dim: #71717a;
+  --nexus-border: rgba(255, 255, 255, 0.08);
+  --nexus-font: 'Inter', system-ui, sans-serif;
+  --nexus-font-mono: 'JetBrains Mono', 'Consolas', monospace;
+  --nexus-font-size: 16px;
+  /* Truwas-style tokens (mapped to our palette) */
+  --background: var(--nexus-bg);
+  --foreground: #fafafa;
+  --card: var(--nexus-card);
+  --border: var(--nexus-border);
+  --primary: var(--nexus-accent);
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: var(--nexus-dim);
+  --input: rgba(0, 0, 0, 0.35);
+  --ring: var(--nexus-accent);
+  --nexus-accent-glow: rgba(168, 85, 247, 0.25);
+}
+
+[data-module='tiktok'] {
+  --nexus-primary: #d4af37;
+  --nexus-accent: #d4af37;
+  --primary: #d4af37;
+  --ring: #d4af37;
+  --nexus-accent-glow: rgba(212, 175, 55, 0.25);
+}
+
+[data-theme='light'] {
+  --nexus-bg: #f4f4f5;
+  --nexus-panel: #ffffff;
+  --nexus-card: #fafafa;
+  --nexus-sidebar: #ede9fe;
+  --nexus-dim: #52525b;
+  --nexus-border: rgba(0, 0, 0, 0.1);
+  --foreground: #18181b;
+  --muted: rgba(0, 0, 0, 0.04);
+  --input: #ffffff;
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--nexus-font);
+    font-size: var(--nexus-font-size);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-mono, code, pre, .nexus-input.font-mono {
+    font-family: var(--nexus-font-mono);
+  }
+
+  input, textarea, select {
+    user-select: text;
+  }
+}
+
+@layer components {
+  .drag-region { -webkit-app-region: drag; }
+  .no-drag { -webkit-app-region: no-drag; }
+
+  .nexus-card,
+  .tp-panel {
+    @apply rounded-xl border bg-card p-0;
+    border-color: var(--border);
+  }
+
+  .nexus-input {
+    @apply w-full rounded-lg px-3 py-2 outline-none transition;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--nexus-border);
+  }
+
+  .nexus-input:focus {
+    border-color: color-mix(in srgb, var(--nexus-accent) 50%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--nexus-accent) 30%, transparent);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--nexus-accent) 30%, transparent);
+    border-radius: 3px;
+  }
+
+  .progress-glow {
+    box-shadow: 0 0 12px color-mix(in srgb, var(--nexus-accent) 60%, transparent);
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: var(--nexus-accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--nexus-accent) 50%, transparent);
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: var(--nexus-accent);
+    cursor: pointer;
+    border: none;
+  }
+}

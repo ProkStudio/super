@@ -1,0 +1,11 @@
+# PyTorch CPU — ставить отдельно:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+torch>=2.0.0
+torchvision>=0.15.0
+# NumPy 2.x ломает torch/torchvision (собраны под 1.x)
+numpy>=1.24.0,<2
+# foolbox не используется в perturb.py (свой FGSM/PGD)
+opencv-python>=4.8.0,<4.10
+gfpgan>=1.3.8
+basicsr>=1.4.2
+facexlib>=0.3.0
