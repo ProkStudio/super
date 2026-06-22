@@ -68,7 +68,18 @@
     "checking": "Checking…",
     "upToDate": "You are on the latest version",
     "error": "Could not check for updates",
-    "devOnly": "Updates work only in the installed app"
+    "devOnly": "Updates work only in the installed app",
+    "toastTitle": "New version available",
+    "toastBody": "Version {{version}} — you are on {{current}}",
+    "toastAction": "Update"
+  },
+  "changelog": {
+    "title": "What's new",
+    "subtitle": "TechPro updates",
+    "versionLabel": "Version {{version}}",
+    "gotIt": "Got it",
+    "dontShowAgain": "Don't show again",
+    "fallback": "Thanks for using TechPro! This release includes stability and UI improvements."
   },
   "common": {
     "back": "Back",
@@ -166,6 +177,7 @@
     "deadProxyReplace": "Replace on all profiles",
     "deadProxyProfiles": "Profiles with dead IPs: {{count}}",
     "hideBans": "Hide bans",
+    "profileId": "ID",
     "statusLabels": {
       "all": "All statuses",
       "none": "No status",
@@ -266,6 +278,9 @@
     "presetLoad": "Load",
     "defaultPreset": "Preset",
     "selectProfiles": "Select profiles to run",
+    "selectProfilesOnProfilesPage": "Select profiles on the Profiles tab first",
+    "profilesPickHint": "Pick profiles on the Profiles tab — configure automation here only.",
+    "goToProfiles": "Open Profiles",
     "profileList": "Profiles for automation",
     "readyOnly": "Ready only",
     "searchProfile": "Search profile...",

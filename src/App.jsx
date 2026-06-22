@@ -25,6 +25,9 @@ import TikTokAutomation from './components/pages/tiktok/TikTokAutomation';
 import TikTokResults from './components/pages/tiktok/TikTokResults';
 import GuideDrawer from './components/layout/GuideDrawer';
 import UpdateModal from './components/layout/UpdateModal';
+import ChangelogModal from './components/layout/ChangelogModal';
+import UpdateToast from './components/layout/UpdateToast';
+import LaunchExperience from './components/layout/LaunchExperience';
 
 const YOUTUBE_PAGES = {
   profiles: Profiles,
@@ -66,6 +69,7 @@ export default function App() {
     setHelpOpen,
     helpOpen,
     settingsSubPage,
+    setSelectedProfileIds,
   } = useAppStore();
 
   const navItems = useMemo(() => getNavItems(activeModule), [activeModule]);
@@ -85,7 +89,11 @@ export default function App() {
         i18n.changeLanguage('ru');
       }
     });
-  }, [applyTheme, hydrateModule]);
+    window.nexusAPI?.getProfilesMeta?.().then((data) => {
+      const ids = data?.selectedIds;
+      if (ids?.length) setSelectedProfileIds(ids.map(String));
+    });
+  }, [applyTheme, hydrateModule, setSelectedProfileIds]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -155,6 +163,9 @@ export default function App() {
       <CommandPalette />
       <HotkeysModal />
       <GuideDrawer />
+      <LaunchExperience />
+      <ChangelogModal />
+      <UpdateToast />
       <UpdateModal />
       <Toast />
     </div>

@@ -196,11 +196,12 @@ def _current_video_signature(page) -> str:
         return page.url or ''
 
 
-def _focus_fyp_player(page, human) -> bool:
-    try:
-        page.bring_to_front()
-    except Exception:
-        pass
+def _focus_fyp_player(page, human, raise_window: bool = False) -> bool:
+    if raise_window:
+        try:
+            page.bring_to_front()
+        except Exception:
+            pass
     for sel in _FYP_PLAYER_SELECTORS:
         try:
             loc = page.locator(sel).first
@@ -268,25 +269,25 @@ def _press_arrow_down_once(page):
 
 
 def _goto_next_video_in_player(page, human):
-    """Ровно одно листание в полноэкранном плеере; повтор при застревании на том же ролике."""
+    """Одно листание ArrowDown; fallback только если ролик реально не сменился."""
     sig_before = _current_video_signature(page)
-    for attempt in range(3):
-        _focus_fyp_player(page, human)
-        random_delay(0.15, 0.35)
-        _press_arrow_down_once(page)
-        random_delay(0.9, 1.5)
+    _focus_fyp_player(page, human, raise_window=False)
+    random_delay(0.15, 0.35)
+    _press_arrow_down_once(page)
+
+    deadline = time.time() + 2.8
+    while time.time() < deadline:
+        random_delay(0.4, 0.65)
         sig_after = _current_video_signature(page)
         if sig_after and sig_after != sig_before:
             return True
-        if attempt == 0:
-            _click_nav_down_button(page, human)
-            random_delay(0.8, 1.3)
-            sig_after = _current_video_signature(page)
-            if sig_after and sig_after != sig_before:
-                return True
-        if attempt == 1:
-            human.smooth_scroll('down', amount=random.randint(400, 700))
-            random_delay(0.6, 1.0)
+
+    if _click_nav_down_button(page, human):
+        random_delay(1.0, 1.6)
+        sig_after = _current_video_signature(page)
+        if sig_after and sig_after != sig_before:
+            return True
+
     return False
 
 

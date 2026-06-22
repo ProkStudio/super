@@ -71,7 +71,7 @@ function configureUpdater() {
         emit('updater:status', { status: 'error', message: e.message });
       });
     } else if (manualCheckPending || shouldNotifyForVersion(info.version)) {
-      emit('updater:notify', payload);
+      emit('updater:notify', { ...payload, manual: manualCheckPending });
     }
     manualCheckPending = false;
   });
@@ -164,6 +164,21 @@ function quitAndInstall() {
   return { ok: true };
 }
 
+function dismissChangelog(version) {
+  if (!version) return getCfg();
+  const cfg = getCfg();
+  store.updateSettings({
+    autoUpdate: { ...cfg, dismissedChangelogVersion: version },
+  });
+  return store.getSettings().autoUpdate;
+}
+
+function shouldShowChangelog() {
+  const current = app.getVersion();
+  const dismissed = getCfg().dismissedChangelogVersion;
+  return dismissed !== current;
+}
+
 function dismissVersion(version) {
   if (!version) return store.getSettings().autoUpdate;
   const cfg = getCfg();
@@ -190,6 +205,7 @@ function getStatus() {
     currentVersion: app.getVersion(),
     autoUpdate: getCfg(),
     pendingVersion: pendingInfo?.version || null,
+    showChangelog: shouldShowChangelog(),
   };
 }
 
@@ -200,6 +216,8 @@ module.exports = {
   downloadUpdate,
   quitAndInstall,
   dismissVersion,
+  dismissChangelog,
+  shouldShowChangelog,
   setAutoUpdateEnabled,
   getStatus,
   isDev,

@@ -9,6 +9,7 @@ import RangeSlider from '../automation/RangeSlider';
 import ProfileSelector, { getProfileName } from '../automation/ProfileSelector';
 import ChannelSetupPanel, { UploadVideoPanel } from '../automation/ChannelPanels';
 import PageHeader from '../layout/PageHeader';
+import { useAutomationDraftPersistence, filterValidProfileIds } from '../../hooks/useAutomationPersistence';
 
 const MODES = [
   { id: 'scan_qr', icon: QrCode },
@@ -87,6 +88,26 @@ export default function Automation() {
     titlesAiCount: 5,
   });
 
+  const applyDraft = useCallback((draft) => {
+    if (draft?.mode) setMode(draft.mode);
+    if (draft?.threads != null) setThreads(draft.threads);
+    if (draft?.config && typeof draft.config === 'object') {
+      setConfig((prev) => ({ ...prev, ...draft.config }));
+    }
+    if (draft?.selectedProfileIds?.length) {
+      setSelectedProfileIds(new Set(draft.selectedProfileIds.map(String)));
+    }
+  }, []);
+
+  const draftSnapshot = useMemo(() => ({
+    mode,
+    threads,
+    config,
+    selectedProfileIds: [...selectedProfileIds],
+  }), [mode, threads, config, selectedProfileIds]);
+
+  useAutomationDraftPersistence('youtube', draftSnapshot, applyDraft);
+
   const loadProfiles = useCallback(async () => {
     setProfilesLoading(true);
     const [profRes, foldRes] = await Promise.all([
@@ -140,6 +161,15 @@ export default function Automation() {
       unsubProgress?.();
     };
   }, [loadProfiles]);
+
+  useEffect(() => {
+    if (!profiles.length) return;
+    setSelectedProfileIds((prev) => {
+      const valid = filterValidProfileIds([...prev], profiles);
+      if (valid.length === prev.size && valid.every((id) => prev.has(id))) return prev;
+      return new Set(valid);
+    });
+  }, [profiles]);
 
   useEffect(() => {
     const updateCounts = async () => {

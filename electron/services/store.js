@@ -38,6 +38,7 @@ const DEFAULT_SETTINGS = {
     enabled: false,
     checkOnStartup: true,
     dismissedVersion: null,
+    dismissedChangelogVersion: null,
   },
   statsCollector: {
     enabled: false,
@@ -74,6 +75,7 @@ const store = new Store({
       repliedKeys: [],
       automation: { running: false, mode: null, logs: [] },
     },
+    automationDrafts: {},
   },
 });
 
@@ -202,6 +204,47 @@ function setTiktok(data) {
   store.set('tiktok', data);
 }
 
+const AUTOMATION_DRAFT_DEFAULTS = {
+  youtube: {
+    selectedProfileIds: [],
+    mode: 'warmup',
+    threads: 2,
+    config: {},
+  },
+  tiktok: {
+    selectedProfileIds: [],
+    mode: 'warmup',
+    threads: 2,
+    config: {},
+  },
+};
+
+function getAutomationDraft(module) {
+  const key = module === 'tiktok' ? 'tiktok' : 'youtube';
+  const drafts = store.get('automationDrafts', {});
+  const defaults = AUTOMATION_DRAFT_DEFAULTS[key] || AUTOMATION_DRAFT_DEFAULTS.youtube;
+  return { ...defaults, ...(drafts[key] || {}) };
+}
+
+function updateAutomationDraft(module, partial) {
+  const key = module === 'tiktok' ? 'tiktok' : 'youtube';
+  const drafts = store.get('automationDrafts', {});
+  drafts[key] = {
+    ...getAutomationDraft(module),
+    ...partial,
+    updatedAt: new Date().toISOString(),
+  };
+  store.set('automationDrafts', drafts);
+  return drafts[key];
+}
+
+function updateProfileSelection(selectedIds) {
+  const cur = getProfiles();
+  const ids = Array.isArray(selectedIds) ? selectedIds.map(String) : [];
+  store.set('profiles', { ...cur, selectedIds: ids });
+  return ids;
+}
+
 function setDeadProxies(list) {
   store.set('deadProxies', list);
 }
@@ -219,6 +262,7 @@ function exportAll() {
     analyticsCache: getAnalyticsCache(),
     deadProxies: getDeadProxies(),
     tiktok: getTiktok(),
+    automationDrafts: store.get('automationDrafts', {}),
   };
 }
 
@@ -264,6 +308,14 @@ function importAll(data, merge = true) {
   if (data.analyticsCache) store.set('analyticsCache', data.analyticsCache);
   if (data.deadProxies) store.set('deadProxies', data.deadProxies);
   if (data.tiktok) store.set('tiktok', data.tiktok);
+  if (data.automationDrafts) {
+    if (merge) {
+      const cur = store.get('automationDrafts', {});
+      store.set('automationDrafts', { ...cur, ...data.automationDrafts });
+    } else {
+      store.set('automationDrafts', data.automationDrafts);
+    }
+  }
   return { ok: true };
 }
 
@@ -300,6 +352,9 @@ module.exports = {
   setDeadProxies,
   getTiktok,
   setTiktok,
+  getAutomationDraft,
+  updateAutomationDraft,
+  updateProfileSelection,
   exportAll,
   importAll,
   resetSettings,

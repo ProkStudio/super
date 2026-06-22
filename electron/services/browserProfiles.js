@@ -97,10 +97,21 @@ function enrichProfiles(list, browserType) {
   return list.map((p) => {
     const id = p.id || p.profileId;
     const m = meta[id] || {};
+    const rawFolder = p.profileFolder || null;
+    const folderId = rawFolder?.id ?? p.folderId ?? p.folder_id;
+    const profileFolder = rawFolder
+      ? {
+          ...rawFolder,
+          id: folderId != null ? String(folderId) : undefined,
+          folderName: rawFolder.folderName || rawFolder.folder_name || rawFolder.name,
+        }
+      : (folderId != null ? { id: String(folderId), folderName: p.folderName || p.folder_name || '' } : null);
     return {
       ...p,
-      id,
+      id: id != null ? String(id) : id,
       browserType,
+      profileFolder,
+      folderId: folderId != null ? String(folderId) : null,
       proxy: normalizeProfileProxy(p.proxy),
       localStatus: m.status || 'none',
       channelName: m.channelName || p.title || '',
@@ -132,9 +143,10 @@ async function listFolders(browserType) {
   const key = getApiKey(type);
   const folders = await CONNECTORS[type].getFolders(key);
   return folders.map((f) => ({
-    id: f.id,
+    id: f.id != null ? String(f.id) : f.id,
     folderName: f.folderName || f.folder_name || f.name,
     folderColor: f.folderColor || f.folder_color,
+    resourceCount: f.resourceCount ?? f.profileCount ?? f.count ?? null,
   }));
 }
 

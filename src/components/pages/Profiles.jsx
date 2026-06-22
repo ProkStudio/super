@@ -6,6 +6,13 @@ import Modal from '../ui/Modal';
 import TerminalLog from '../ui/TerminalLog';
 import LinkAccountCell from '../profiles/LinkAccountCell';
 import PageHeader from '../layout/PageHeader';
+import Checkbox from '../ui/Checkbox';
+import {
+  countProfilesByFolder,
+  getProfileFolderId,
+  normalizeFolderId,
+  profileInFolders,
+} from '../../lib/profileUtils';
 
 function parseProxiesFromText(text) {
   return text.split('\n').filter(Boolean).map((line) => {
@@ -37,8 +44,12 @@ const STATUS_COLORS = {
 const STATUS_OPTIONS = ['all', 'none', 'uploaded', 'ban', 'running', 'ready'];
 const PAGE_SIZE = 50;
 
-function getProfileFolderId(p) {
-  return p.profileFolder?.id || p.folderId || null;
+function getFolderCount(folder, folderCounts) {
+  const id = normalizeFolderId(folder.id);
+  const fromProfiles = id ? folderCounts.get(id) : 0;
+  if (fromProfiles > 0) return fromProfiles;
+  if (folder.resourceCount != null && folder.resourceCount > 0) return folder.resourceCount;
+  return fromProfiles || 0;
 }
 
 export default function Profiles() {
@@ -70,6 +81,20 @@ export default function Profiles() {
   const [page, setPage] = useState(0);
   const [browserType, setBrowserType] = useState('mostlogin');
   const [accountsList, setAccountsList] = useState([]);
+
+  useEffect(() => {
+    window.nexusAPI?.getProfilesMeta?.().then((data) => {
+      const ids = data?.selectedIds;
+      if (ids?.length) setSelectedProfileIds(ids);
+    });
+  }, [setSelectedProfileIds]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.nexusAPI?.updateProfileSelection?.(selectedProfileIds);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [selectedProfileIds]);
 
   useEffect(() => {
     window.nexusAPI?.getDeadProxies?.().then((list) => setDeadProxies(list || []));
@@ -139,13 +164,15 @@ export default function Profiles() {
   }, []);
 
   const toggleFolder = (folderId, ctrlKey) => {
+    const id = normalizeFolderId(folderId);
+    if (!id) return;
     setPage(0);
     if (ctrlKey) {
       setSelectedFolderIds((prev) => (
-        prev.includes(folderId) ? prev.filter((id) => id !== folderId) : [...prev, folderId]
+        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
       ));
     } else {
-      setSelectedFolderIds((prev) => (prev.length === 1 && prev[0] === folderId ? [] : [folderId]));
+      setSelectedFolderIds((prev) => (prev.length === 1 && prev[0] === id ? [] : [id]));
     }
   };
 
@@ -158,7 +185,7 @@ export default function Profiles() {
   };
 
   const filtered = useMemo(() => profiles.filter((p) => {
-    if (selectedFolderIds.length && !selectedFolderIds.includes(getProfileFolderId(p))) return false;
+    if (selectedFolderIds.length && !profileInFolders(p, selectedFolderIds)) return false;
     if (!matchesStatus(p)) return false;
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -505,6 +532,7 @@ export default function Profiles() {
   };
 
   const profileCountLabel = t('profiles.profileCount', { count: filtered.length });
+  const folderCounts = useMemo(() => countProfilesByFolder(profiles), [profiles]);
 
   return (
     <div className="h-full flex gap-4 overflow-hidden">
@@ -526,18 +554,19 @@ export default function Profiles() {
             <span className="ml-auto text-[10px] opacity-60">{profiles.length}</span>
           </button>
           {folders.map((folder) => {
-            const active = selectedFolderIds.includes(folder.id);
+            const id = normalizeFolderId(folder.id);
+            const active = selectedFolderIds.includes(id);
             const color = FOLDER_COLOR_MAP[folder.folderColor] || folder.folderColor || '#3370FF';
             return (
               <button
-                key={folder.id}
+                key={id}
                 type="button"
-                onClick={(e) => toggleFolder(folder.id, e.ctrlKey || e.metaKey)}
+                onClick={(e) => toggleFolder(id, e.ctrlKey || e.metaKey)}
                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-left transition ${active ? 'bg-purple-500/15 text-white' : 'hover:bg-white/5 text-nexus-dim'}`}
               >
                 <span className="w-3 h-3 rounded shrink-0" style={{ background: color }} />
                 <span className="truncate">{folder.folderName}</span>
-                <span className="ml-auto text-[10px] opacity-60">{folder.resourceCount ?? 0}</span>
+                <span className="ml-auto text-[10px] opacity-60 tabular-nums">{getFolderCount(folder, folderCounts)}</span>
               </button>
             );
           })}
@@ -770,11 +799,11 @@ export default function Profiles() {
               <thead className="sticky top-0 bg-nexus-card border-b z-10" style={{ borderColor: 'var(--nexus-border)' }}>
                 <tr className="text-left text-nexus-dim text-xs">
                   <th className="p-3 w-10">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={allPageSelected}
+                      indeterminate={selectedOnPage > 0 && !allPageSelected}
                       onChange={toggleSelectAllPage}
-                      title={t('profiles.selectAllPage')}
+                      size="sm"
                     />
                   </th>
                   <th className="p-3">{t('profiles.columnProfile')}</th>
@@ -789,7 +818,13 @@ export default function Profiles() {
               <tbody>
                 {pageItems.map((p) => (
                   <tr key={p.id} className="border-b hover:bg-white/[0.02]" style={{ borderColor: 'var(--nexus-border)' }}>
-                    <td className="p-3"><input type="checkbox" checked={selectedSet.has(p.id)} onChange={() => toggleSelect(p.id)} /></td>
+                    <td className="p-3">
+                      <Checkbox
+                        checked={selectedSet.has(p.id)}
+                        onChange={() => toggleSelect(p.id)}
+                        size="sm"
+                      />
+                    </td>
                     <td className="p-3">
                       <div className="font-medium">{p.title || p.name || p.id?.slice(0, 8)}</div>
                       {p.linkedEmail && <div className="text-xs text-nexus-dim">{p.linkedEmail}</div>}

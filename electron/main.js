@@ -445,6 +445,10 @@ ipcMain.handle('browser:assignProxies', async (_, opts) => (
 // Profiles meta
 ipcMain.handle('profiles:get', () => store.getProfiles());
 ipcMain.handle('profiles:set', (_, data) => { store.setProfiles(data); return { ok: true }; });
+ipcMain.handle('profiles:updateSelection', (_, { selectedIds }) => {
+  const ids = store.updateProfileSelection(selectedIds);
+  return { ok: true, selectedIds: ids };
+});
 ipcMain.handle('profiles:deadProxies', () => store.getDeadProxies());
 ipcMain.handle('profiles:setDeadProxies', (_, list) => { store.setDeadProxies(list); return { ok: true }; });
 ipcMain.handle('profiles:getDeadProxyProfiles', async () => {
@@ -528,6 +532,10 @@ ipcMain.handle('clipboard:copy', (_, text) => fileExport.copyToClipboard(text));
 ipcMain.handle('automation:presets', () => store.getAutomationPresets());
 ipcMain.handle('automation:savePreset', (_, preset) => store.saveAutomationPreset(preset));
 ipcMain.handle('automation:deletePreset', (_, id) => store.deleteAutomationPreset(id));
+ipcMain.handle('automation:draft:get', (_, { module } = {}) => store.getAutomationDraft(module));
+ipcMain.handle('automation:draft:update', (_, { module, partial } = {}) => (
+  store.updateAutomationDraft(module, partial || {})
+));
 
 ipcMain.handle('automation:run', async (_, { mode, config, profileIds }) => {
   return taskRunner.runAutomationMode({
@@ -895,6 +903,7 @@ ipcMain.handle('updater:check', () => appUpdater.checkForUpdates(true));
 ipcMain.handle('updater:download', () => appUpdater.downloadUpdate());
 ipcMain.handle('updater:install', () => appUpdater.quitAndInstall());
 ipcMain.handle('updater:dismiss', (_, version) => appUpdater.dismissVersion(version));
+ipcMain.handle('changelog:dismiss', (_, version) => appUpdater.dismissChangelog(version));
 ipcMain.handle('updater:setAutoEnabled', (_, enabled) => appUpdater.setAutoUpdateEnabled(enabled));
 
 ipcMain.handle('shell:openPath', (_, dirPath) => shell.openPath(dirPath));

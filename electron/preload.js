@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('nexusAPI', {
 
   getProfilesMeta: () => ipcRenderer.invoke('profiles:get'),
   setProfilesMeta: (data) => ipcRenderer.invoke('profiles:set', data),
+  updateProfileSelection: (selectedIds) => ipcRenderer.invoke('profiles:updateSelection', { selectedIds }),
   updateProfileStatus: (opts) => ipcRenderer.invoke('profiles:updateStatus', opts),
   linkProfileAccount: (opts) => ipcRenderer.invoke('profiles:linkAccount', opts),
   getDeadProxies: () => ipcRenderer.invoke('profiles:deadProxies'),
@@ -72,6 +73,8 @@ contextBridge.exposeInMainWorld('nexusAPI', {
   getAutomationPresets: () => ipcRenderer.invoke('automation:presets'),
   saveAutomationPreset: (p) => ipcRenderer.invoke('automation:savePreset', p),
   deleteAutomationPreset: (id) => ipcRenderer.invoke('automation:deletePreset', id),
+  getAutomationDraft: (module) => ipcRenderer.invoke('automation:draft:get', { module }),
+  updateAutomationDraft: (module, partial) => ipcRenderer.invoke('automation:draft:update', { module, partial }),
   runAutomation: (opts) => ipcRenderer.invoke('automation:run', opts),
   debugStudioDom: (opts) => ipcRenderer.invoke('automation:debugStudio', opts),
   cancelAutomation: () => ipcRenderer.invoke('automation:cancel'),
@@ -254,6 +257,7 @@ contextBridge.exposeInMainWorld('nexusAPI', {
   downloadUpdate: () => ipcRenderer.invoke('updater:download'),
   installUpdate: () => ipcRenderer.invoke('updater:install'),
   dismissUpdate: (version) => ipcRenderer.invoke('updater:dismiss', version),
+  dismissChangelog: (version) => ipcRenderer.invoke('changelog:dismiss', version),
   setAutoUpdateEnabled: (enabled) => ipcRenderer.invoke('updater:setAutoEnabled', enabled),
   onUpdaterStatus: (cb) => {
     const h = (_, d) => cb(d);

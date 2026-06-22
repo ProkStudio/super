@@ -9,7 +9,7 @@ const RELEASES_URL = 'https://github.com/ProkStudio/super/releases';
 
 export default function UpdateModal() {
   const { t } = useTranslation();
-  const { showToast } = useAppStore();
+  const { showToast, updateModalRequest, clearUpdateModalRequest } = useAppStore();
   const [open, setOpen] = useState(false);
   const [info, setInfo] = useState(null);
   const [phase, setPhase] = useState('available');
@@ -17,7 +17,17 @@ export default function UpdateModal() {
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const applyPayload = useCallback((payload) => {
+  const openWithPayload = useCallback((payload) => {
+    if (!payload) return;
+    setInfo(payload);
+    setPhase(payload.status === 'downloaded' ? 'downloaded' : 'available');
+    setAutoEnabled(!!payload.autoEnabled);
+    setOpen(true);
+    setBusy(false);
+    if (payload.status === 'downloaded') setProgress(100);
+  }, []);
+
+  const applyStatusPayload = useCallback((payload) => {
     if (!payload) return;
     if (payload.status === 'checking') return;
 
@@ -48,25 +58,29 @@ export default function UpdateModal() {
       setInfo((prev) => ({ ...prev, ...payload }));
       setBusy(false);
       setProgress(100);
-      return;
     }
 
-    if (payload.status === 'available') {
-      setInfo(payload);
-      setPhase('available');
-      setAutoEnabled(!!payload.autoEnabled);
-      setOpen(true);
-      setBusy(false);
-    }
+    // status === 'available' — не открываем модалку; тост показывает LaunchExperience
   }, [showToast, t]);
+
+  useEffect(() => {
+    if (updateModalRequest) {
+      openWithPayload(updateModalRequest);
+      clearUpdateModalRequest();
+    }
+  }, [updateModalRequest, openWithPayload, clearUpdateModalRequest]);
 
   useEffect(() => {
     window.nexusAPI?.getUpdaterStatus?.().then((res) => {
       if (res?.autoUpdate?.enabled != null) setAutoEnabled(!!res.autoUpdate.enabled);
     });
 
-    const unsubStatus = window.nexusAPI?.onUpdaterStatus?.(applyPayload);
-    const unsubNotify = window.nexusAPI?.onUpdaterNotify?.(applyPayload);
+    const unsubStatus = window.nexusAPI?.onUpdaterStatus?.(applyStatusPayload);
+    const unsubNotify = window.nexusAPI?.onUpdaterNotify?.((payload) => {
+      if (payload?.status === 'downloaded') {
+        openWithPayload(payload);
+      }
+    });
     const unsubProgress = window.nexusAPI?.onUpdaterProgress?.((p) => {
       if (p?.percent != null) setProgress(Math.round(p.percent));
     });
@@ -76,7 +90,7 @@ export default function UpdateModal() {
       unsubNotify?.();
       unsubProgress?.();
     };
-  }, [applyPayload]);
+  }, [applyStatusPayload, openWithPayload]);
 
   const saveAuto = async (enabled) => {
     setAutoEnabled(enabled);

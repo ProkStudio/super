@@ -7,15 +7,17 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 from common.utils import progress, random_delay
 from common.human_sim import HumanSimulator
 from tiktok.page_health import assert_page_healthy, is_feed_active, is_waf_confirmed
 from tiktok.search_nav import (
     navigate_same_tab,
+    open_recommendations,
     open_video_from_profile,
     open_video_via_search_videos,
+    run_tiktok_search,
 )
 
 _FYP_URL = 'https://www.tiktok.com/ru-RU/'
@@ -40,21 +42,7 @@ _VIDEO_READY_SELECTORS = (
     'video',
 )
 
-# Вход на TikTok: только общий запрос «tiktok» (без site: и без URL видео)
-_ENTRY_SEARCH_ENGINES = (
-    ('https://www.bing.com/search?q={q}', 'Bing'),
-    ('https://duckduckgo.com/?q={q}&ia=web', 'DuckDuckGo'),
-    ('https://yandex.ru/search/?text={q}', 'Яндекс'),
-    ('https://www.google.com/search?q={q}&hl=ru', 'Google'),
-)
-
-_CONSENT_SELECTORS = (
-    'button:has-text("Accept all")',
-    'button:has-text("Принять все")',
-    'button:has-text("I agree")',
-    'button:has-text("Согласен")',
-    '#L2AGLb',
-)
+# Прямой вход на FYP; внешние поисковики не используем — только UI TikTok в текущей вкладке.
 
 
 @dataclass
@@ -218,7 +206,7 @@ def _page_score(page) -> int:
     return score
 
 
-def resolve_tiktok_page(context, current_page=None):
+def resolve_tiktok_page(context, current_page=None, raise_window: bool = False):
     best = None
     best_score = -1
     for p in _all_context_pages(context):
@@ -228,7 +216,7 @@ def resolve_tiktok_page(context, current_page=None):
             best = p
     if best is None or best_score <= 0:
         return current_page
-    if best != current_page:
+    if raise_window and best != current_page:
         try:
             best.bring_to_front()
         except Exception:
@@ -297,118 +285,81 @@ def _wait_video_ready(page, human, timeout_sec=35.0, video_id: str = '') -> bool
     return False
 
 
-def _dismiss_search_consent(page, human) -> None:
-    for sel in _CONSENT_SELECTORS:
+def _pick_entry_page(context, current_page=None):
+    """Текущая вкладка профиля — не открываем лишние окна."""
+    existing = resolve_tiktok_page(context, current_page)
+    if existing and _is_tiktok_alive(existing):
+        return existing
+    if current_page is not None:
+        return current_page
+    pages = _all_context_pages(context)
+    if pages:
+        return pages[0]
+    return context.new_page()
+
+
+def _wait_waf_clear(page, timeout_sec: float = 22.0) -> bool:
+    deadline = time.time() + timeout_sec
+    while time.time() < deadline:
+        if _is_tiktok_alive(page) and is_tiktok_session_healthy(page):
+            return True
+        if not is_waf_confirmed(page, stuck_sec=2.5):
+            if _is_tiktok_alive(page):
+                return True
         try:
-            loc = page.locator(sel).first
-            if loc.count() > 0 and loc.is_visible(timeout=1000):
-                human.human_click(loc)
-                random_delay(0.4, 0.9)
-                return
+            page.wait_for_timeout(450)
         except Exception:
-            continue
+            break
+    return _is_tiktok_alive(page) and is_tiktok_session_healthy(page)
 
 
-def _click_tiktok_search_result(page, human) -> bool:
+def _entry_via_tiktok_ui(page, human, label='', stage='tiktok_nav') -> bool:
+    """Вход через сайдбар TikTok (поиск / Рекомендации) — без Bing/Google."""
+    _log(stage, label, 'вход через поиск TikTok в текущей вкладке')
+
+    if 'tiktok.com' in (page.url or '').lower():
+        if open_recommendations(page, human, label=label, stage=stage):
+            random_delay(1.5, 2.5)
+            if is_tiktok_session_healthy(page):
+                return True
+
     try:
-        clicked = page.evaluate(
-            """() => {
-              const anchors = Array.from(document.querySelectorAll('a[href]'));
-              for (const a of anchors) {
-                const href = (a.href || a.getAttribute('href') || '').toLowerCase();
-                if (!href.includes('tiktok.com')) continue;
-                if (href.includes('google.') || href.includes('gstatic')) continue;
-                const r = a.getBoundingClientRect();
-                if (r.width < 24 || r.height < 12) continue;
-                if (r.top < 0 || r.top > window.innerHeight - 20) continue;
-                a.scrollIntoView({ block: 'center', behavior: 'instant' });
-                a.click();
-                return true;
-              }
-              return false;
-            }"""
-        )
-        if clicked:
+        human.goto(_FYP_URL, wait_until='domcontentloaded', timeout=60000)
+        random_delay(2.5, 4.0)
+        if _wait_waf_clear(page, timeout_sec=18.0):
+            _log(stage, label, 'TikTok открыт')
             return True
     except Exception:
         pass
 
-    for sel in ('a[href*="tiktok.com"]', '#search a[href*="tiktok"]'):
+    for keyword in ('funny', 'tiktok'):
         try:
-            loc = page.locator(sel)
-            for i in range(min(loc.count(), 10)):
-                link = loc.nth(i)
-                if 'tiktok.com' not in (link.get_attribute('href') or '').lower():
-                    continue
-                if link.is_visible(timeout=800):
-                    human.human_click(link)
+            if run_tiktok_search(page, human, keyword, label=label, stage=stage, videos_tab=True):
+                random_delay(2.0, 3.0)
+                open_recommendations(page, human, label=label, stage=stage)
+                random_delay(1.0, 2.0)
+                if is_tiktok_session_healthy(page):
+                    _log(stage, label, 'TikTok открыт через поиск')
                     return True
         except Exception:
             continue
     return False
 
 
-def _wait_tiktok_loaded(context, page, timeout_sec=20.0) -> tuple:
-    deadline = time.time() + timeout_sec
-    while time.time() < deadline:
-        resolved = resolve_tiktok_page(context, page)
-        if resolved and _is_tiktok_alive(resolved):
-            if is_tiktok_session_healthy(resolved):
-                return resolved, HumanSimulator(resolved), True
-        try:
-            page.wait_for_timeout(350)
-        except Exception:
-            break
-    resolved = resolve_tiktok_page(context, page)
-    if resolved and _is_tiktok_alive(resolved):
-        return resolved, HumanSimulator(resolved), True
-    return page, HumanSimulator(page), False
-
-
-def _click_and_follow_tiktok(context, page, human, label='', stage='tiktok_nav') -> tuple:
-    new_page = None
-    clicked = False
-    try:
-        with context.expect_page(timeout=8000) as popup_info:
-            clicked = _click_tiktok_search_result(page, human)
-        if clicked:
-            try:
-                new_page = popup_info.value
-            except Exception:
-                new_page = None
-    except Exception:
-        if not clicked:
-            clicked = _click_tiktok_search_result(page, human)
-
-    if not clicked:
-        return page, human, False
-
-    if new_page is not None:
-        try:
-            new_page.wait_for_load_state('domcontentloaded', timeout=15000)
-        except Exception:
-            pass
-        page, human, ok = _wait_tiktok_loaded(context, new_page, timeout_sec=15.0)
-        if ok:
-            _log(stage, label, 'TikTok открыт')
-            return page, human, True
-
-    page, human, ok = _wait_tiktok_loaded(context, page, timeout_sec=15.0)
-    return page, human, ok
-
-
-def natural_entry_direct(context, label='', stage='tiktok_nav', entry_url: str = '') -> tuple:
-    """Вход на TikTok: сначала прямая ссылка (профиль/FYP), поисковики — только при WAF."""
-    existing = resolve_tiktok_page(context, None)
+def natural_entry_direct(
+    context,
+    label='',
+    stage='tiktok_nav',
+    entry_url: str = '',
+    current_page=None,
+) -> tuple:
+    """Вход на TikTok в уже открытой вкладке профиля; поисковики снаружи не трогаем."""
+    existing = resolve_tiktok_page(context, current_page)
     if existing and _is_tiktok_alive(existing):
         _log(stage, label, 'TikTok уже открыт — использую текущую вкладку')
         return existing, HumanSimulator(existing)
 
-    page = context.new_page()
-    try:
-        page.bring_to_front()
-    except Exception:
-        pass
+    page = _pick_entry_page(context, current_page)
     human = HumanSimulator(page)
 
     targets = []
@@ -418,43 +369,39 @@ def natural_entry_direct(context, label='', stage='tiktok_nav', entry_url: str =
 
     for target in targets:
         try:
-            _log(stage, label, f'прямой переход → {target[:70]}…')
+            _log(stage, label, f'переход в текущей вкладке → {target[:70]}…')
             human.goto(target, wait_until='domcontentloaded', timeout=60000)
             random_delay(2.0, 3.5)
             page = resolve_tiktok_page(context, page)
-            if _is_tiktok_alive(page) and not is_waf_confirmed(page):
+            human = HumanSimulator(page)
+            if _is_tiktok_alive(page) and is_tiktok_session_healthy(page):
                 _log(stage, label, 'TikTok открыт')
-                return page, HumanSimulator(page)
+                return page, human
             if is_waf_confirmed(page):
-                _log(stage, label, 'WAF на прямом переходе — пробую поисковик')
-                break
+                _log(stage, label, 'WAF — жду загрузку на текущей вкладке')
+                if _wait_waf_clear(page):
+                    return page, HumanSimulator(page)
         except Exception:
             continue
 
-    for template, engine_name in _ENTRY_SEARCH_ENGINES:
-        try:
-            _log(stage, label, f'fallback: {engine_name}…')
-            human.goto(
-                template.format(q=quote('tiktok')),
-                wait_until='domcontentloaded',
-                timeout=45000,
-            )
-            random_delay(1.0, 2.0)
-            _dismiss_search_consent(page, human)
-            page, human, ok = _click_and_follow_tiktok(context, page, human, label=label, stage=stage)
-            if ok:
-                return page, human
-        except Exception:
-            continue
+    if _entry_via_tiktok_ui(page, human, label=label, stage=stage):
+        page = resolve_tiktok_page(context, page)
+        return page, HumanSimulator(page)
 
     page = resolve_tiktok_page(context, page)
     if page and _is_tiktok_alive(page):
         return page, HumanSimulator(page)
-    raise RuntimeError('не удалось открыть TikTok')
+    raise RuntimeError('не удалось открыть TikTok в текущей вкладке профиля')
 
 
-def natural_entry_via_search(context, label='', stage='tiktok_nav', entry_url: str = '') -> tuple:
-    return natural_entry_direct(context, label=label, stage=stage, entry_url=entry_url)
+def natural_entry_via_search(context, label='', stage='tiktok_nav', entry_url: str = '', current_page=None) -> tuple:
+    return natural_entry_direct(
+        context,
+        label=label,
+        stage=stage,
+        entry_url=entry_url,
+        current_page=current_page,
+    )
 
 
 def ensure_tiktok_session(
@@ -474,10 +421,6 @@ def ensure_tiktok_session(
     if not force:
         for p in _all_context_pages(page.context):
             if _is_tiktok_alive(p):
-                try:
-                    p.bring_to_front()
-                except Exception:
-                    pass
                 return p, HumanSimulator(p)
 
     if is_waf_confirmed(page) or 'tiktok.com' not in (page.url or '').lower() or force:
@@ -486,6 +429,7 @@ def ensure_tiktok_session(
             label=label,
             stage=stage,
             entry_url=entry_url,
+            current_page=page,
         )
 
     return page, human

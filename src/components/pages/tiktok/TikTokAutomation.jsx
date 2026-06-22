@@ -6,9 +6,9 @@ import TerminalLog from '../../ui/TerminalLog';
 import Toggle from '../../ui/Toggle';
 import Modal from '../../ui/Modal';
 import RangeSlider from '../../automation/RangeSlider';
-import ProfileSelector from '../../automation/ProfileSelector';
 import PageHeader from '../../layout/PageHeader';
 import FieldHint from '../../ui/FieldHint';
+import { useAutomationDraftPersistence } from '../../../hooks/useAutomationPersistence';
 
 const MODES = [
   { id: 'warmup', icon: Flame },
@@ -72,7 +72,7 @@ function appendLog(setter, entry) {
 
 export default function TikTokAutomation() {
   const { t } = useTranslation();
-  const { showToast, setHelpOpen } = useAppStore();
+  const { showToast, setHelpOpen, selectedProfileIds, setActivePage } = useAppStore();
   const [mode, setMode] = useState('warmup');
   const [threads, setThreads] = useState(2);
   const [running, setRunning] = useState(false);
@@ -82,41 +82,35 @@ export default function TikTokAutomation() {
   const [presetName, setPresetName] = useState('');
   const [activePresetId, setActivePresetId] = useState(null);
   const [showPresets, setShowPresets] = useState(false);
-  const [profiles, setProfiles] = useState([]);
-  const [folders, setFolders] = useState([]);
-  const [profilesLoading, setProfilesLoading] = useState(false);
-  const [selectedProfileIds, setSelectedProfileIds] = useState(() => new Set());
-  const [browserType] = useState('mostlogin');
+  const [browserType, setBrowserType] = useState('mostlogin');
   const [config, setConfig] = useState({ ...DEFAULT_WARMUP_CONFIG, ...DEFAULT_SMART_COMMENT_CONFIG });
+
+  const applyDraft = useCallback((draft) => {
+    if (draft?.mode) setMode(draft.mode);
+    if (draft?.threads != null) setThreads(draft.threads);
+    if (draft?.config && typeof draft.config === 'object') {
+      setConfig((prev) => ({ ...prev, ...draft.config }));
+    }
+  }, []);
+
+  const draftSnapshot = useMemo(() => ({
+    mode,
+    threads,
+    config,
+  }), [mode, threads, config]);
+
+  useAutomationDraftPersistence('tiktok', draftSnapshot, applyDraft);
 
   const tiktokPresets = useMemo(
     () => presets.filter((p) => p.module === 'tiktok' && (!p.mode || p.mode === mode)),
     [presets, mode],
   );
 
-  const loadProfiles = useCallback(async () => {
-    setProfilesLoading(true);
-    const [profRes, foldRes, metaRes] = await Promise.all([
-      window.nexusAPI?.listProfiles(browserType),
-      window.nexusAPI?.listFolders(browserType),
-      window.nexusAPI?.getProfilesMeta?.(),
-    ]);
-    if (profRes?.ok) {
-      const meta = metaRes?.meta || {};
-      setProfiles((profRes.profiles || []).map((p) => ({
-        ...p,
-        tiktokUsername: meta[p.id]?.tiktokUsername,
-        tiktokReady: meta[p.id]?.tiktokReady,
-        localStatus: meta[p.id]?.tiktokReady ? 'ready' : (meta[p.id]?.tiktokStatus || 'none'),
-      })));
-    }
-    if (foldRes?.ok) setFolders(foldRes.folders || []);
-    setProfilesLoading(false);
-  }, [browserType]);
-
   useEffect(() => {
-    loadProfiles();
     window.nexusAPI?.getAutomationPresets().then(setPresets);
+    window.nexusAPI?.getSettings().then((r) => {
+      if (r?.settings?.browserProvider) setBrowserType(r.settings.browserProvider);
+    });
 
     const unsubLog = window.nexusAPI?.onTiktokAutomationLog?.((msg) => {
       const entry = typeof msg === 'string' ? { text: msg } : msg;
@@ -136,12 +130,9 @@ export default function TikTokAutomation() {
       unsubLog?.();
       unsubProgress?.();
     };
-  }, [loadProfiles]);
+  }, []);
 
-  const selectedProfiles = useMemo(
-    () => profiles.filter((p) => selectedProfileIds.has(p.id)),
-    [profiles, selectedProfileIds],
-  );
+  const selectedCount = selectedProfileIds.length;
 
   const patchConfig = (partial) => setConfig((c) => {
     const next = { ...c, ...partial };
@@ -152,26 +143,6 @@ export default function TikTokAutomation() {
     return next;
   });
 
-  const toggleProfile = (id) => {
-    setSelectedProfileIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleAllVisible = (visibleProfiles, select) => {
-    setSelectedProfileIds((prev) => {
-      const next = new Set(prev);
-      for (const p of visibleProfiles) {
-        if (select) next.add(p.id);
-        else next.delete(p.id);
-      }
-      return next;
-    });
-  };
-
   const stopAutomation = async () => {
     await window.nexusAPI?.stopTiktokAutomation?.();
     setRunning(false);
@@ -180,12 +151,12 @@ export default function TikTokAutomation() {
   };
 
   const start = async () => {
-    if (!selectedProfiles.length) {
-      showToast(t('automation.selectProfiles'), 'error');
+    if (!selectedCount) {
+      showToast(t('automation.selectProfilesOnProfilesPage'), 'error');
       return;
     }
 
-    const profileIds = selectedProfiles.map((p) => String(p.id));
+    const profileIds = selectedProfileIds.map(String);
     setRunning(true);
     setProgress(0);
     setLogs([]);
@@ -274,7 +245,6 @@ export default function TikTokAutomation() {
       mode,
       config,
       threads,
-      selectedProfileIds: [...selectedProfileIds],
       createdAt: base?.createdAt || new Date().toISOString(),
     };
     const list = await window.nexusAPI?.saveAutomationPreset(preset);
@@ -282,15 +252,12 @@ export default function TikTokAutomation() {
     setActivePresetId(preset.id);
     setPresetName(preset.name);
     showToast(t('automation.presetSaved'));
-  }, [config, threads, selectedProfileIds, presetName, activePresetId, tiktokPresets, t, showToast, mode]);
+  }, [config, threads, presetName, activePresetId, tiktokPresets, t, showToast, mode]);
 
   const loadPreset = useCallback((p, closeModal = false) => {
     if (p.mode) setMode(p.mode);
     setConfig((prev) => ({ ...prev, ...p.config }));
     setThreads(p.threads || 2);
-    if (p.selectedProfileIds?.length) {
-      setSelectedProfileIds(new Set(p.selectedProfileIds));
-    }
     setActivePresetId(p.id);
     setPresetName(p.name || '');
     showToast(t('automation.presetLoaded'));
@@ -330,7 +297,7 @@ export default function TikTokAutomation() {
               <button type="button" onClick={() => setThreads(Math.min(10, threads + 1))} className="p-1 rounded hover:bg-white/5"><Plus className="w-3 h-3" /></button>
             </div>
             <span className="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap" style={{ borderColor: 'color-mix(in srgb, var(--nexus-accent) 40%, transparent)', color: 'var(--nexus-accent)' }}>
-              {t('automation.selected')}: {selectedProfiles.length}
+              {t('automation.selected')}: {selectedCount}
             </span>
             <button
               type="button"
@@ -345,7 +312,7 @@ export default function TikTokAutomation() {
             <button
               type="button"
               onClick={running ? stopAutomation : start}
-              disabled={!running && !selectedProfiles.length}
+              disabled={!running && !selectedCount}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 ${
                 running ? 'bg-red-600 hover:bg-red-500 text-white' : 'text-black'
               }`}
@@ -358,15 +325,19 @@ export default function TikTokAutomation() {
         )}
       />
 
-      <ProfileSelector
-        profiles={profiles}
-        folders={folders}
-        selectedIds={selectedProfileIds}
-        onToggle={toggleProfile}
-        onToggleAll={toggleAllVisible}
-        onRefresh={loadProfiles}
-        loading={profilesLoading}
-      />
+      {selectedCount === 0 ? (
+        <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border text-xs" style={{ borderColor: 'var(--nexus-border)', background: 'color-mix(in srgb, var(--nexus-accent) 6%, transparent)' }}>
+          <span className="text-nexus-dim">{t('automation.profilesPickHint')}</span>
+          <button
+            type="button"
+            onClick={() => setActivePage('profiles')}
+            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ background: 'var(--nexus-accent)', color: '#0a0a0a' }}
+          >
+            {t('automation.goToProfiles')}
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-1 shrink-0 flex-wrap border-b pb-2" style={{ borderColor: 'var(--nexus-border)' }}>
         {MODES.map(({ id, icon: Icon }) => (
@@ -721,7 +692,14 @@ export default function TikTokAutomation() {
         </div>
       )}
 
-      <TerminalLog logs={logs} onClear={() => setLogs([])} title={t('automation.terminal')} clearLabel={t('automation.clear')} />
+      <TerminalLog
+        logs={logs}
+        onClear={() => setLogs([])}
+        title={t('automation.terminal')}
+        clearLabel={t('automation.clear')}
+        defaultCollapsed
+        expandedHeight={running || logs.length ? 'h-36' : 'h-32'}
+      />
 
       <Modal open={showPresets} onClose={() => setShowPresets(false)} title={t('automation.presetManage')}>
         {tiktokPresets.length === 0 ? (

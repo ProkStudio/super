@@ -29,6 +29,15 @@ export const useAppStore = create((set, get) => ({
   selectedProfileIds: [],
   mostloginOnline: false,
   toast: null,
+  changelogOpen: false,
+  updateBanner: null,
+  updateModalRequest: null,
+
+  setChangelogOpen: (v) => set({ changelogOpen: v }),
+  setUpdateBanner: (banner) => set({ updateBanner: banner }),
+  clearUpdateBanner: () => set({ updateBanner: null }),
+  requestUpdateModal: (payload) => set({ updateModalRequest: payload, updateBanner: null }),
+  clearUpdateModalRequest: () => set({ updateModalRequest: null }),
 
   setActivePage: (page) => set({ activePage: page, settingsSubPage: null }),
 

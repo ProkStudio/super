@@ -50,7 +50,7 @@ def clamp_threads(value, maximum=20):
 
 
 
-def connect_page(playwright, cdp_url, prefer_domains=None):
+def connect_page(playwright, cdp_url, prefer_domains=None, bring_to_front=False):
 
     browser = playwright.chromium.connect_over_cdp(cdp_url)
 
@@ -59,6 +59,8 @@ def connect_page(playwright, cdp_url, prefer_domains=None):
     page = None
 
     prefer = [str(d).lower() for d in (prefer_domains or []) if d]
+
+    prefer_tiktok = any('tiktok.com' in d for d in prefer)
 
     if prefer:
 
@@ -86,6 +88,16 @@ def connect_page(playwright, cdp_url, prefer_domains=None):
 
         for ctx in browser.contexts or [context]:
 
+            if ctx.pages:
+
+                page = ctx.pages[0]
+
+                break
+
+    if not page and not prefer_tiktok:
+
+        for ctx in browser.contexts or [context]:
+
             for p in ctx.pages:
 
                 url = (p.url or '').lower()
@@ -104,13 +116,15 @@ def connect_page(playwright, cdp_url, prefer_domains=None):
 
         page = context.pages[0] if context.pages else context.new_page()
 
-    try:
+    if bring_to_front:
 
-        page.bring_to_front()
+        try:
 
-    except Exception:
+            page.bring_to_front()
 
-        pass
+        except Exception:
+
+            pass
 
     return browser, page
 
@@ -200,13 +214,23 @@ def _run_one_session(session, handler, stage, index, total, config):
 
     prefer_domains = config.get('pagePreferDomains') or config.get('page_prefer_domains')
 
+    prefer_tiktok = any(
+        'tiktok.com' in str(d).lower()
+        for d in (prefer_domains or [])
+    )
+
     _safe_progress(stage, int((index / max(total, 1)) * 100), f'{label}: подключение')
 
     try:
 
         with sync_playwright() as playwright:
 
-            browser, page = connect_page(playwright, cdp, prefer_domains=prefer_domains)
+            browser, page = connect_page(
+                playwright,
+                cdp,
+                prefer_domains=prefer_domains,
+                bring_to_front=not prefer_tiktok,
+            )
 
             stat = handler(page, label, session, index, total, config)
 

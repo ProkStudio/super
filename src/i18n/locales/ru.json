@@ -38,6 +38,7 @@
       "profileOpened": "Профиль открыт — войдите в TikTok вручную",
       "empty": "Нет профилей. Создайте их на странице «Профили».",
       "statusCol": "Статус",
+      "columnUser": "TikTok",
       "ready": "Готов",
       "status": {
         "active": "Активен",
@@ -185,7 +186,18 @@
     "checking": "Проверка…",
     "upToDate": "У вас последняя версия",
     "error": "Не удалось проверить обновления",
-    "devOnly": "Обновления доступны только в установленной версии"
+    "devOnly": "Обновления доступны только в установленной версии",
+    "toastTitle": "Доступна новая версия",
+    "toastBody": "Версия {{version}} — у вас {{current}}",
+    "toastAction": "Обновить"
+  },
+  "changelog": {
+    "title": "Что нового",
+    "subtitle": "Обновления TechPro",
+    "versionLabel": "Версия {{version}}",
+    "gotIt": "Понятно",
+    "dontShowAgain": "Больше не показывать",
+    "fallback": "Спасибо, что пользуетесь TechPro! В этом релизе — улучшения стабильности и интерфейса."
   },
   "common": {
     "back": "Назад",
@@ -284,6 +296,7 @@
     "deadProxyReplace": "Заменить на всех профилях",
     "deadProxyProfiles": "Профилей с мёртвыми IP: {{count}}",
     "hideBans": "Скрыть баны",
+    "profileId": "ID",
     "statusLabels": {
       "all": "Все статусы",
       "none": "Без статуса",
@@ -384,6 +397,9 @@
     "presetLoad": "Загрузить",
     "defaultPreset": "Пресет",
     "selectProfiles": "Выберите профили для запуска",
+    "selectProfilesOnProfilesPage": "Сначала выберите профили на вкладке «Профили»",
+    "profilesPickHint": "Профили для запуска выбираются на вкладке «Профили» — здесь только настройки.",
+    "goToProfiles": "Открыть профили",
     "profileList": "Профили для автоматизации",
     "readyOnly": "Только готовые",
     "searchProfile": "Поиск профиля...",
