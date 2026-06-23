@@ -9,29 +9,33 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from common.utils import progress, random_delay
+from common.utils import progress, random_delay, emit_replied_keys
 from common.session_runner import run_playwright_sessions
 from common.human_sim import HumanSimulator
 
 from tiktok.comment_parser import (
+    dedup_keys_for_comment,
     extract_video_id,
+    is_comment_already_replied,
     iterate_comments_top_down,
+    parent_thread_has_own_reply,
+    seed_replied_keys_from_dom,
     wait_for_comments_loaded,
 )
+from tiktok.detect_login import resolve_tiktok_username
 from tiktok.comment_poster import (
     ensure_comments_panel_open,
     post_reply,
     post_root_comment,
     read_caption,
+    scroll_comment_list,
 )
 from tiktok.comment_gen import generate_reply_text
-from tiktok.page_health import assert_page_healthy
 from tiktok.navigation import (
     ensure_tiktok_session,
+    guard_session_or_recover,
     normalize_video_input,
     open_tiktok_video,
-    parse_video_url,
-    profile_url_for,
 )
 from tiktok.search_nav import micro_warmup_fyp
 
@@ -86,16 +90,7 @@ def _video_urls(cfg) -> list[str]:
 
 
 def _entry_url_from_cfg(cfg) -> str:
-    raw = cfg.get("videoUrls") or cfg.get("video_urls") or []
-    lines = raw if isinstance(raw, list) else str(raw).splitlines()
-    for line in lines:
-        try:
-            normalized = normalize_video_input(str(line).strip())
-        except ValueError:
-            continue
-        ref = parse_video_url(normalized)
-        if ref and ref.username:
-            return profile_url_for(ref)
+    """Вход только на FYP — прямой goto @profile триггерит WAF «Please wait»."""
     return ''
 
 
@@ -104,8 +99,22 @@ def _replied_set(cfg) -> set[str]:
     return {str(k) for k in keys}
 
 
-def _dedup_key(video_id: str, parent_id: str, profile_id: str) -> str:
-    return f"{video_id}|{parent_id}|{profile_id}"
+def _register_replied(replied: set[str], video_id: str, profile_id: str, comment: dict) -> list[str]:
+    added: list[str] = []
+    for k in dedup_keys_for_comment(video_id, profile_id, comment):
+        if k not in replied:
+            replied.add(k)
+            added.append(k)
+    return added
+
+
+def _refresh_replied_from_dom(page, video_id: str, profile_id: str, own_username: str, replied: set[str]) -> list[str]:
+    added: list[str] = []
+    for k in seed_replied_keys_from_dom(page, video_id, profile_id, own_username):
+        if k not in replied:
+            replied.add(k)
+            added.append(k)
+    return added
 
 
 def _click_first(page, human, selectors) -> bool:
@@ -146,6 +155,35 @@ def _between_comments(cfg, label=''):
     time.sleep(pause)
 
 
+_SPAM_MARKERS = (
+    "ютуб", "youtube", "подпис", "заработ", "деньг", "скидк", "промокод",
+    "telegram", "телег", "whatsapp", "вацап", "http", "www.", ".com",
+)
+
+
+def _spam_risk_hint(text: str) -> str | None:
+    low = (text or "").lower()
+    hits = [m for m in _SPAM_MARKERS if m in low]
+    if len(hits) >= 2 or (hits and len(low) > 60):
+        return f"риск скрытия TikTok (маркеры: {', '.join(hits[:4])})"
+    if hits:
+        return f"возможен фильтр TikTok ({hits[0]})"
+    return None
+
+
+def _watch_target_video(page, human, cfg, label: str = "") -> None:
+    wmin = _cfg_int(cfg, "watchMinSec", "watch_min_sec", default=12)
+    wmax = _cfg_int(cfg, "watchMaxSec", "watch_max_sec", default=28)
+    if wmin <= 0 and wmax <= 0:
+        return
+    if wmin > wmax:
+        wmin, wmax = wmax, wmin
+    watch_sec = random.randint(max(3, wmin), max(wmin, wmax))
+    msg = f"{label}: смотрю видео ~{watch_sec}с перед комментами" if label else f"смотрю видео ~{watch_sec}с"
+    progress("tiktok_smart_comment", None, msg)
+    human.watch_for(watch_sec)
+
+
 def _maybe_video_actions(page, human, cfg):
     if _cfg_bool(cfg, "likeVideoEnabled", "like_video_enabled", default=False):
         prob = _cfg_int(cfg, "likeVideoProb", "like_video_prob", default=50) / 100.0
@@ -157,9 +195,10 @@ def _maybe_video_actions(page, human, cfg):
             _click_first(page, human, _FOLLOW_VIDEO_SELECTORS)
 
 
-def _process_video(page, human, cfg, state, profile_id, own_username, video_url, label):
+def _process_video(page, human, cfg, state, profile_id, own_username, video_url, label, replied_cache: set[str] | None = None):
     video_id = extract_video_id(video_url)
-    replied = _replied_set(cfg)
+    replied = replied_cache if replied_cache is not None else _replied_set(cfg)
+    cfg = {**cfg, "profileId": profile_id, "ownUsernames": list({own_username, *(cfg.get("ownUsernames") or [])})}
     new_keys: list[str] = []
     posted = 0
     limit = _cfg_int(cfg, "commentsPerVideo", "comments_per_video", default=20)
@@ -181,11 +220,34 @@ def _process_video(page, human, cfg, state, profile_id, own_username, video_url,
     state["human"] = human
     _maybe_video_actions(page, human, cfg)
 
+    page, human = guard_session_or_recover(page, human, label=label, stage='tiktok_smart_comment')
+    state["page"] = page
+    state["human"] = human
+
     progress("tiktok_smart_comment", None, f"{label}: жду загрузку видео…")
     random_delay(3.0, 5.0)
+    _watch_target_video(page, human, cfg, label=label)
     ensure_comments_panel_open(page, human)
     wait_for_comments_loaded(page, timeout_sec=20.0)
     random_delay(1.5, 2.5)
+
+    seeded = seed_replied_keys_from_dom(page, video_id, profile_id, own_username)
+    new_seed_keys: list[str] = []
+    for k in seeded:
+        if k not in replied:
+            replied.add(k)
+            new_seed_keys.append(k)
+    if new_seed_keys:
+        emit_replied_keys(new_seed_keys)
+        progress(
+            "tiktok_smart_comment",
+            None,
+            f"{label}: на видео уже есть {len(new_seed_keys)} наших ответов — пропущу",
+        )
+
+    page, human = guard_session_or_recover(page, human, label=label, stage='tiktok_smart_comment')
+    state["page"] = page
+    state["human"] = human
 
     caption = read_caption(page)
     max_age = _cfg_int(cfg, "commentMaxAgeDays", "comment_max_age_days", default=7)
@@ -199,14 +261,30 @@ def _process_video(page, human, cfg, state, profile_id, own_username, video_url,
     )
 
     failed_posts = 0
+    session_text_counts: dict[str, int] = {}
     for comment in iterate_comments_top_down(
-        page, human, cfg, own_username, stats=scroll_stats
+        page,
+        human,
+        cfg,
+        own_username,
+        stats=scroll_stats,
+        replied_keys=replied,
+        video_id=video_id,
+        profile_id=profile_id,
     ):
         if posted >= limit:
             break
-        parent_id = comment.get("parentId") or str(comment.get("index", 0))
-        dkey = _dedup_key(video_id, parent_id, profile_id)
-        if dkey in replied:
+        if is_comment_already_replied(replied, video_id, profile_id, comment):
+            scroll_stats["skippedReplied"] = int(scroll_stats.get("skippedReplied", 0)) + 1
+            continue
+
+        author = comment.get("author") or ""
+        parent_text = comment.get("text") or ""
+        if own_username and parent_thread_has_own_reply(page, own_username, author, parent_text):
+            scroll_stats["skippedReplied"] = int(scroll_stats.get("skippedReplied", 0)) + 1
+            added = _register_replied(replied, video_id, profile_id, comment)
+            if added:
+                emit_replied_keys(added)
             continue
 
         text = generate_reply_text(
@@ -216,12 +294,26 @@ def _process_video(page, human, cfg, state, profile_id, own_username, video_url,
             state,
         )
         if not text:
-            progress("tiktok_smart_comment", None, f"{label}: пустой текст ответа — пропуск")
+            from tiktok.comment_filters import parent_offers_service
+            if parent_offers_service(parent_text):
+                progress("tiktok_smart_comment", None, f"{label}: пропуск — автор продаёт услугу")
+            else:
+                progress("tiktok_smart_comment", None, f"{label}: пустой текст ответа — пропуск")
             continue
 
+        norm_text = text.strip().lower()
+        session_text_counts[norm_text] = session_text_counts.get(norm_text, 0) + 1
+        if session_text_counts[norm_text] == 4:
+            progress(
+                "tiktok_smart_comment",
+                None,
+                f"{label}: ⚠ один и тот же текст уже 3+ раз — TikTok часто скрывает такие ответы от других",
+            )
+        spam_hint = _spam_risk_hint(text)
+        if spam_hint and session_text_counts[norm_text] <= 1:
+            progress("tiktok_smart_comment", None, f"{label}: ⚠ {spam_hint}")
+
         idx = int(comment.get("index", 0))
-        parent_text = comment.get("text") or ""
-        author = comment.get("author") or ""
 
         progress(
             "tiktok_smart_comment",
@@ -237,6 +329,7 @@ def _process_video(page, human, cfg, state, profile_id, own_username, video_url,
             like_prob=like_parent_prob,
             author=author,
             parent_text=parent_text,
+            own_username=own_username or "",
         )
         if not ok:
             failed_posts += 1
@@ -245,25 +338,34 @@ def _process_video(page, human, cfg, state, profile_id, own_username, video_url,
                 None,
                 f"{label}: не удалось ответить на «{parent_text[:35]}…» (@{author})",
             )
-            if failed_posts >= 3:
+            scroll_comment_list(page, direction='down', amount=450)
+            random_delay(0.8, 1.4)
+            if failed_posts == 3:
                 progress(
                     "tiktok_smart_comment",
                     None,
-                    f"{label}: много неудачных отправок — увеличьте паузу или проверьте аккаунт",
+                    f"{label}: 3 неудачи подряд — проверьте лимиты TikTok, продолжаю листать",
                 )
-                break
             continue
 
+        failed_posts = 0
         posted += 1
-        replied.add(dkey)
-        new_keys.append(dkey)
+        added_keys = _register_replied(replied, video_id, profile_id, comment)
+        added_keys.extend(_refresh_replied_from_dom(page, video_id, profile_id, own_username, replied))
+        new_keys.extend(added_keys)
+        if added_keys:
+            emit_replied_keys(added_keys)
         progress(
             "tiktok_smart_comment",
             None,
             f"{label}: +1 «{text[:40]}…» ({posted}/{limit})",
         )
+        scroll_comment_list(page, direction='down', amount=380)
+        random_delay(0.6, 1.1)
         _between_comments(cfg, label=label)
-        assert_page_healthy(page)
+        page, human = guard_session_or_recover(page, human, label=label, stage='tiktok_smart_comment')
+        state["page"] = page
+        state["human"] = human
 
     progress(
         "tiktok_smart_comment",
@@ -271,15 +373,39 @@ def _process_video(page, human, cfg, state, profile_id, own_username, video_url,
         f"{label}: просмотрено {scroll_stats.get('scanned', 0)}, "
         f"подошло {scroll_stats.get('yielded', 0)}, "
         f"отсеяно фильтром {scroll_stats.get('skippedFilter', 0)}, "
+        f"уже отвечали {scroll_stats.get('skippedReplied', 0)}, "
         f"ответов {posted}/{limit}",
     )
+    reasons = scroll_stats.get("skipReasons") or {}
+    if reasons:
+        parts = ", ".join(f"{k}={v}" for k, v in sorted(reasons.items()))
+        progress("tiktok_smart_comment", None, f"{label}: причины отсева: {parts}")
 
     if posted == 0 and scroll_stats.get("yielded", 0) == 0 and scroll_stats.get("scanned", 0) > 0:
-        progress(
-            "tiktok_smart_comment",
-            None,
-            f"{label}: нет свежих комментов — ослабьте фильтр даты или увеличьте «макс. возраст»",
-        )
+        if reasons.get("date_old"):
+            progress(
+                "tiktok_smart_comment",
+                None,
+                f"{label}: все комменты старше лимита — увеличьте «макс. возраст» или выключите фильтр даты",
+            )
+        elif reasons.get("date_unknown"):
+            progress(
+                "tiktok_smart_comment",
+                None,
+                f"{label}: дата комментов не распознана — отключите «отсеивать без даты» или фильтр даты",
+            )
+        elif reasons:
+            progress(
+                "tiktok_smart_comment",
+                None,
+                f"{label}: ни один коммент не прошёл фильтры — проверьте ключевые слова, лайки, свои комменты",
+            )
+        else:
+            progress(
+                "tiktok_smart_comment",
+                None,
+                f"{label}: нет подходящих комментов — ослабьте фильтр даты или увеличьте «макс. возраст»",
+            )
     elif posted == 0 and scroll_stats.get("scanned", 0) == 0:
         progress("tiktok_smart_comment", None, f"{label}: комментарии не найдены под видео")
 
@@ -306,7 +432,6 @@ def _process_video(page, human, cfg, state, profile_id, own_username, video_url,
 def run_session(page, label, session, index, total, config):
     cfg = config or {}
     profile_id = str(session.get("profileId") or "")
-    own_username = (session.get("login") or label or "").lstrip("@")
     urls = _video_urls(cfg)
     if not urls:
         raise RuntimeError(f"{label}: не указаны URL видео")
@@ -321,8 +446,12 @@ def run_session(page, label, session, index, total, config):
         stage='tiktok_smart_comment',
         entry_url=entry_url,
     )
+    own_username = resolve_tiktok_username(page, human, session, label)
+    if own_username:
+        progress("tiktok_smart_comment", None, f"{label}: аккаунт @{own_username}")
     state["page"] = page
     state["human"] = human
+    state["ownUsername"] = own_username
     state["tiktokReady"] = True
     dmin = _cfg_int(cfg, "delayMinSec", "delay_min_sec", default=7)
     dmax = _cfg_int(cfg, "delayMaxSec", "delay_max_sec", default=11)
@@ -341,6 +470,13 @@ def run_session(page, label, session, index, total, config):
     video_stats = []
     all_keys: list[str] = []
     total_posted = 0
+    replied_cache = _replied_set(cfg)
+    if replied_cache:
+        progress(
+            "tiktok_smart_comment",
+            None,
+            f"{label}: в памяти {len(replied_cache)} уже отвеченных комментов",
+        )
     base_pct = int((index / max(total, 1)) * 100)
 
     for vi, url in enumerate(urls):
@@ -349,7 +485,9 @@ def run_session(page, label, session, index, total, config):
         page = state.get("page", page)
         human = state.get("human", human)
         try:
-            stat = _process_video(page, human, cfg, state, profile_id, own_username, url, label)
+            stat = _process_video(
+                page, human, cfg, state, profile_id, own_username, url, label, replied_cache
+            )
             video_stats.append(stat)
             total_posted += stat.get("commentsPosted", 0)
             all_keys.extend(stat.get("repliedKeys") or [])

@@ -59,6 +59,7 @@
       "smartCommentDone": "Комментинг завершён",
       "needVideoUrls": "Укажите URL видео",
       "needCommentPool": "Заполните пул комментариев или включите AI",
+      "needOfferPoolForAi": "При AI укажите шаблоны оффера в пуле (по одному на строку)",
       "modes": {
         "warmup": "Прогрев",
         "smart_comment": "Комментинг"
@@ -104,6 +105,9 @@
         "rootComment": "Корневой комментарий к видео",
         "rootCommentHint": "После ответов на чужие — один комментарий в поле «Add comment» под видео (если лимит не исчерпан).",
         "useAi": "AI (OpenRouter) для ответов",
+        "useAiHint": "Пул ниже — шаблоны вашего оффера. AI перефразирует под каждый комментарий. Настройки модели — в «API ключи».",
+        "skipCompetitor": "Пропускать конкурентов",
+        "skipCompetitorHint": "Не отвечать, если автор уже продаёт услугу (научу, дам схему, пиши в лс…).",
         "limits": "Лимиты",
         "commentsPerVideo": "Комментов на видео",
         "commentsPerVideoHint": "Максимум ответов на одно видео за запуск (1–100). Остановка раньше, если комментарии закончились.",
@@ -515,9 +519,21 @@
     "aiApiKey": "API ключ",
     "aiTestOk": "Подключение успешно",
     "aiTestFail": "Ошибка подключения",
+    "aiTiktokTestTitle": "Тест ответа TikTok",
+    "aiTiktokTestDesc": "AI читает комментарий, подстраивается под тему и мягко вставляет ваш оффер. Буквы о/а/у/е заменяются на латиницу.",
+    "aiTiktokTestParent": "Родительский комментарий",
+    "aiTiktokTestCaption": "Описание видео (опционально)",
+    "aiTiktokTestCaptionPh": "О чём ролик",
+    "aiTiktokTestTemplate": "Шаблон оффера / пул",
+    "aiTiktokTestBtn": "Сгенерировать ответ",
+    "aiTiktokTestReply": "Ответ",
+    "aiTiktokTestSkipped": "Пропуск: автор уже продаёт услугу",
     "aiPreset": {
       "deepseek": "DeepSeek",
-      "openrouter": "OpenRouter (Nemotron free)"
+      "openrouter_fast": "OpenRouter — Llama 3.2 3B (быстрая, free)",
+      "openrouter_router": "OpenRouter — авто free",
+      "openrouter_llama70": "OpenRouter — Llama 3.3 70B (free)",
+      "openrouter_nemotron": "OpenRouter — Nemotron (free)"
     },
     "installed": "Установлен",
     "notFound": "Не найден",

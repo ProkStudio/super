@@ -157,7 +157,10 @@ function BrowserSettings({ settings, onSave }) {
 }
 
 const AI_PRESETS = [
-  { id: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1', model: 'nvidia/nemotron-3-ultra-550b-a55b:free' },
+  { id: 'openrouter_fast', baseUrl: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.2-3b-instruct:free' },
+  { id: 'openrouter_router', baseUrl: 'https://openrouter.ai/api/v1', model: 'openrouter/free' },
+  { id: 'openrouter_llama70', baseUrl: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.3-70b-instruct:free' },
+  { id: 'openrouter_nemotron', baseUrl: 'https://openrouter.ai/api/v1', model: 'nvidia/nemotron-3-ultra-550b-a55b:free' },
 ];
 
 function ApiKeysSettings({ settings, onSave }) {
@@ -165,9 +168,15 @@ function ApiKeysSettings({ settings, onSave }) {
   const [keys, setKeys] = useState({});
   const [has, setHas] = useState({});
   const [aiBaseUrl, setAiBaseUrl] = useState(settings.aiBaseUrl || 'https://openrouter.ai/api/v1');
-  const [aiModel, setAiModel] = useState(settings.aiModel || 'nvidia/nemotron-3-ultra-550b-a55b:free');
+  const [aiModel, setAiModel] = useState(settings.aiModel || 'meta-llama/llama-3.2-3b-instruct:free');
   const [aiKey, setAiKey] = useState('');
   const [aiStatus, setAiStatus] = useState(null);
+  const [tiktokTestParent, setTiktokTestParent] = useState('Где взять нормальную схему заработка?');
+  const [tiktokTestCaption, setTiktokTestCaption] = useState('');
+  const [tiktokTestTemplate, setTiktokTestTemplate] = useState(
+    'Напиши в поиске ютуба Спредофил — за пару вечеров можно выйти на нормальный доход',
+  );
+  const [tiktokTestResult, setTiktokTestResult] = useState(null);
 
   useEffect(() => {
     window.nexusAPI?.getSettings().then((r) => setHas(r?.secrets || {}));
@@ -175,7 +184,7 @@ function ApiKeysSettings({ settings, onSave }) {
 
   useEffect(() => {
     setAiBaseUrl(settings.aiBaseUrl || 'https://openrouter.ai/api/v1');
-    setAiModel(settings.aiModel || 'nvidia/nemotron-3-ultra-550b-a55b:free');
+    setAiModel(settings.aiModel || 'meta-llama/llama-3.2-3b-instruct:free');
   }, [settings]);
 
   const save = async (name) => {
@@ -203,6 +212,18 @@ function ApiKeysSettings({ settings, onSave }) {
     await onSave({ aiBaseUrl: aiBaseUrl.trim(), aiModel: aiModel.trim() });
     const res = await window.nexusAPI?.testAi?.();
     setAiStatus(res);
+  };
+
+  const testTiktokComment = async () => {
+    if (aiKey.trim()) await window.nexusAPI?.setSecret('deepseekKey', aiKey.trim());
+    await onSave({ aiBaseUrl: aiBaseUrl.trim(), aiModel: aiModel.trim() });
+    setTiktokTestResult(null);
+    const res = await window.nexusAPI?.testTiktokComment?.({
+      parentText: tiktokTestParent,
+      caption: tiktokTestCaption,
+      serviceTemplate: tiktokTestTemplate,
+    });
+    setTiktokTestResult(res);
   };
 
   const applyPreset = (preset) => {
@@ -265,7 +286,7 @@ function ApiKeysSettings({ settings, onSave }) {
           className="nexus-input text-sm font-mono"
           value={aiModel}
           onChange={(e) => setAiModel(e.target.value)}
-          placeholder="nvidia/nemotron-3-ultra-550b-a55b:free"
+          placeholder="meta-llama/llama-3.2-3b-instruct:free"
         />
 
         <label className="block text-xs text-nexus-dim">{t('settings.aiApiKey')}</label>
@@ -290,6 +311,51 @@ function ApiKeysSettings({ settings, onSave }) {
             {aiStatus.valid ? t('settings.aiTestOk') : (aiStatus.error || t('settings.aiTestFail'))}
           </p>
         )}
+
+        <div className="pt-3 mt-3 border-t space-y-2" style={{ borderColor: 'var(--nexus-border)' }}>
+          <div className="text-xs font-medium">{t('settings.aiTiktokTestTitle')}</div>
+          <p className="text-xs text-nexus-dim">{t('settings.aiTiktokTestDesc')}</p>
+          <label className="block text-xs text-nexus-dim">{t('settings.aiTiktokTestParent')}</label>
+          <textarea
+            className="nexus-input text-sm min-h-[72px]"
+            value={tiktokTestParent}
+            onChange={(e) => setTiktokTestParent(e.target.value)}
+          />
+          <label className="block text-xs text-nexus-dim">{t('settings.aiTiktokTestCaption')}</label>
+          <input
+            className="nexus-input text-sm"
+            value={tiktokTestCaption}
+            onChange={(e) => setTiktokTestCaption(e.target.value)}
+            placeholder={t('settings.aiTiktokTestCaptionPh')}
+          />
+          <label className="block text-xs text-nexus-dim">{t('settings.aiTiktokTestTemplate')}</label>
+          <textarea
+            className="nexus-input text-sm min-h-[64px]"
+            value={tiktokTestTemplate}
+            onChange={(e) => setTiktokTestTemplate(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={testTiktokComment}
+            className="px-4 py-2 rounded-lg text-sm border hover:bg-white/5"
+            style={{ borderColor: 'var(--nexus-border)' }}
+          >
+            {t('settings.aiTiktokTestBtn')}
+          </button>
+          {tiktokTestResult && (
+            <div className={`text-xs rounded-lg p-3 ${tiktokTestResult.valid ? 'bg-green-500/10 text-green-300' : 'bg-red-500/10 text-red-300'}`}>
+              {tiktokTestResult.valid && tiktokTestResult.skipped && (
+                <p>{tiktokTestResult.message || t('settings.aiTiktokTestSkipped')}</p>
+              )}
+              {tiktokTestResult.valid && !tiktokTestResult.skipped && tiktokTestResult.reply && (
+                <p><span className="text-nexus-dim">{t('settings.aiTiktokTestReply')}: </span>{tiktokTestResult.reply}</p>
+              )}
+              {!tiktokTestResult.valid && (
+                <p>{tiktokTestResult.error || t('settings.aiTestFail')}</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -557,6 +623,16 @@ function SettingsPanel({ title, onBack, children }) {
   );
 }
 
+function SettingsScroll({ children }) {
+  return (
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 pr-1">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { settingsSubPage, setSettingsSubPage } = useAppStore();
   const [settings, setSettings] = useState({});
@@ -571,7 +647,11 @@ export default function Settings() {
   };
 
   if (!settingsSubPage) {
-    return <SettingsList onSelect={setSettingsSubPage} />;
+    return (
+      <SettingsScroll>
+        <SettingsList onSelect={setSettingsSubPage} />
+      </SettingsScroll>
+    );
   }
 
   const pages = {
@@ -585,5 +665,9 @@ export default function Settings() {
     hotkeys: <HotkeysSettings />,
   };
 
-  return pages[settingsSubPage] || <SettingsList onSelect={setSettingsSubPage} />;
+  return (
+    <SettingsScroll>
+      {pages[settingsSubPage] || <SettingsList onSelect={setSettingsSubPage} />}
+    </SettingsScroll>
+  );
 }

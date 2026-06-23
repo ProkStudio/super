@@ -112,6 +112,8 @@ async function updateProfileProxy(profileId, proxy) {
   return data;
 }
 
+const OPEN_BROWSER_TIMEOUT_MS = 120000;
+
 async function openBrowser(profileId, options = {}) {
   const id = normalizeProfileId(profileId);
   if (!id) {
@@ -130,14 +132,21 @@ async function openBrowser(profileId, options = {}) {
     ...(options.urls?.length ? { urls: options.urls } : {}),
   };
 
+  const postOpen = () => client.post(ENDPOINTS.openBrowser, payload, {
+    timeout: OPEN_BROWSER_TIMEOUT_MS,
+  });
+
   try {
-    const { data } = await client.post(ENDPOINTS.openBrowser, payload);
+    const { data } = await postOpen();
     return data;
   } catch (error) {
-    if (error.response?.status === 400) {
+    const isTimeout = error.code === 'ECONNABORTED' || /timeout/i.test(String(error.message));
+    const is400 = error.response?.status === 400;
+    if (is400 || isTimeout) {
       try {
         await closeBrowser(id);
-        const { data } = await client.post(ENDPOINTS.openBrowser, payload);
+        await new Promise((r) => setTimeout(r, 2000));
+        const { data } = await postOpen();
         return data;
       } catch (retryError) {
         throw retryError;

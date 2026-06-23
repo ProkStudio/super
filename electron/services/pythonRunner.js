@@ -38,6 +38,7 @@ function runScript(scriptName, config, onProgress, onLog, options = {}) {
 
     activeJobs.set(jobId, proc);
     let stdout = '';
+    let stderr = '';
     let stdoutBytes = 0;
     const MAX_STDOUT = 512 * 1024;
     let lastProgressAt = 0;
@@ -57,13 +58,17 @@ function runScript(scriptName, config, onProgress, onLog, options = {}) {
         } else if (line.startsWith('PROGRESS:')) {
           try {
             const payload = JSON.parse(line.slice(9));
-            if (payload.message) {
-              onLog?.({ text: payload.message, level: 'info' });
-            }
-            const now = Date.now();
-            if (now - lastProgressAt >= 400 || payload.percent >= 99 || payload.percent === 0) {
-              lastProgressAt = now;
+            if (payload.type === 'repliedKeys') {
               onProgress?.(payload);
+            } else {
+              if (payload.message) {
+                onLog?.({ text: payload.message, level: 'info' });
+              }
+              const now = Date.now();
+              if (now - lastProgressAt >= 400 || payload.percent >= 99 || payload.percent === 0) {
+                lastProgressAt = now;
+                onProgress?.(payload);
+              }
             }
           } catch { /* ignore */ }
         } else if (line.trim() && !line.startsWith('RESULT:')) {
@@ -72,7 +77,12 @@ function runScript(scriptName, config, onProgress, onLog, options = {}) {
       }
     });
 
-    proc.stderr.on('data', (chunk) => onLog?.(`[stderr] ${decode(chunk).trim()}`));
+    proc.stderr.on('data', (chunk) => {
+      const text = decode(chunk);
+      stderr += text;
+      const line = text.trim();
+      if (line) onLog?.(`[stderr] ${line}`);
+    });
 
     proc.on('close', (code) => {
       activeJobs.delete(jobId);
@@ -87,7 +97,12 @@ function runScript(scriptName, config, onProgress, onLog, options = {}) {
           resolve({ ok: true });
         }
       } else {
-        reject(new Error(`Script exited with code ${code}`));
+        const errTail = stderr.trim().split('\n').slice(-3).join(' ').slice(0, 300);
+        const hint = code == null
+          ? 'скрипт прерван (отмена или сбой Playwright)'
+          : `код выхода ${code}`;
+        const detail = errTail ? ` — ${errTail}` : '';
+        reject(new Error(`Скрипт остановлен: ${hint}${detail}`));
       }
     });
 

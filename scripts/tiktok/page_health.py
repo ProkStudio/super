@@ -24,14 +24,42 @@ BAN_TEXT_STRICT = (
 
 VERIFY_TEXT_STRICT = (
     r'verify your account to continue',
+    r'verify to continue',
+    r'verify you are human',
     r'confirm your identity',
+    r'drag the slider',
+    r'slide to verify',
+    r'complete the puzzle',
     r'подтвердите свой аккаунт',
     r'подтвердите, что это вы',
     r'подтвердите, что вы не робот',
-    r'complete the security check',
+    r'подтвердите свою личность',
+    r'перетащите ползунок',
+    r'пройдите проверку',
     r'пройдите проверку безопасности',
+    r'докажите, что вы человек',
+    r'complete the security check',
     r'unusual activity on your account',
     r'подозрительная активность',
+    r'security verification',
+    r'проверка безопасности',
+)
+
+VERIFY_URL_HINTS = (
+    '/captcha',
+    '/verify',
+    'challenge',
+    'secsdk',
+    'captcha_verify',
+)
+
+VERIFY_DOM_SELECTORS = (
+    '#captcha-verify-image',
+    '#captcha-verify',
+    '[id*="captcha"]',
+    '[class*="captcha-verify"]',
+    '[class*="CaptchaVerify"]',
+    '[data-e2e*="captcha"]',
 )
 
 WAF_TEXT_STRICT = (
@@ -132,6 +160,44 @@ def is_feed_active(page) -> bool:
     return False
 
 
+def is_verify_page(page) -> bool:
+    """Страница капчи / верификации (без долгого ожидания)."""
+    if is_feed_active(page) or _has_tiktok_ui(page):
+        return False
+
+    url = (page.url or '').lower()
+    if any(h in url for h in VERIFY_URL_HINTS):
+        return True
+
+    for sel in VERIFY_DOM_SELECTORS:
+        try:
+            loc = page.locator(sel).first
+            if loc.count() > 0 and loc.is_visible(timeout=500):
+                return True
+        except Exception:
+            continue
+
+    body = _visible_text(page)[:10000]
+    html = ''
+    try:
+        html = (page.content() or '')[:15000].lower()
+    except Exception:
+        pass
+    blob = f'{url}\n{body}\n{html}'
+    if _match_any(blob, VERIFY_TEXT_STRICT):
+        return True
+    return False
+
+
+def is_challenge_page(page) -> bool:
+    """WAF или верификация — сессия не пригодна для работы."""
+    if is_feed_active(page):
+        return False
+    if is_verify_page(page):
+        return True
+    return is_waf_challenge(page)
+
+
 def is_waf_challenge(page) -> bool:
     """Быстрая проверка маркеров WAF (может сработать на загрузке)."""
     if not _has_waf_markers(page):
@@ -167,6 +233,9 @@ def inspect_page(page) -> tuple[str, str | None]:
     """
     if is_feed_active(page):
         return 'active', None
+
+    if is_verify_page(page):
+        return 'verify', 'страница верификации / капча TikTok'
 
     url = (page.url or '').lower()
     body = _visible_text(page)[:12000]

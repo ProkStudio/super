@@ -282,6 +282,7 @@ module.exports = {
   CONNECTORS,
   resolveBrowserType,
   getApiKey,
+  connector,
   testConnection,
   listProfiles,
   listFolders,

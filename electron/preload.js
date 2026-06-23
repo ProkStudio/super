@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('nexusAPI', {
   resetSettings: () => ipcRenderer.invoke('settings:reset'),
   validateYoutube: () => ipcRenderer.invoke('settings:validateYoutube'),
   testAi: () => ipcRenderer.invoke('settings:testAi'),
+  testTiktokComment: (opts) => ipcRenderer.invoke('settings:testTiktokComment', opts),
 
   getSystemStatus: () => ipcRenderer.invoke('system:status'),
 

@@ -1,4 +1,4 @@
-"""TikTok — генерация текста комментария/ответа (пул + spintax + OpenRouter)."""
+"""TikTok — генерация ответов: пул офферов + OpenRouter + homoglyph."""
 from __future__ import annotations
 
 import json
@@ -6,6 +6,13 @@ import random
 import re
 import urllib.error
 import urllib.request
+
+from tiktok.comment_filters import (
+    apply_homoglyphs,
+    humanize_tiktok_comment,
+    is_valid_tiktok_comment,
+    parent_offers_service,
+)
 
 _SPINTAX_RE = re.compile(r"\{([^{}]*)\}")
 
@@ -52,36 +59,63 @@ def _pick_from_pool(cfg, state: dict | None = None) -> str:
                 expanded.append(ln)
         return expand_spintax(random.choice(expanded or lines))
 
-    # random + spintax mode
     return expand_spintax(random.choice(lines))
 
 
-def _ai_rewrite(parent_text: str, caption: str, template: str, cfg: dict) -> str | None:
+def _build_ai_messages(parent_text: str, caption: str, service_template: str, *, strict: bool = False) -> tuple[str, str]:
+    system = (
+        "Пиши ТОЛЬКО текст комментария TikTok на русском языке. "
+        "Никакого английского. Никаких пояснений, списков и пересказа задания."
+    )
+    parent = (parent_text or "").strip()[:400] or "привет всем"
+    cap = (caption or "").strip()[:300] or "видео про деньги"
+    offer = (service_template or "").strip()[:500] or "ютуб Спредофил"
+    extra = (
+        "\n\nВажно: одна строка на русском. Без слов The user, Constraints, Reply, English."
+        if strict
+        else ""
+    )
+    user = (
+        f"Коммент под видео: {parent}\n"
+        f"О чём видео: {cap}\n"
+        f"Вплети смысл оффера: {offer}\n\n"
+        "Стиль: как обычный юзер TikTok 18-25 ща норм кста типа без запятых и без тире\n\n"
+        "Пример ответа:\n"
+        "ага норм тема кста глянь в ютубе Спредофил за пару вечеров реально выйти можно\n\n"
+        f"Твой ответ одной строкой:{extra}"
+    )
+    return system, user
+
+
+def _call_chat_api(
+    cfg: dict,
+    system: str,
+    user: str,
+    *,
+    use_ai_flag: bool = True,
+    temperature: float = 0.92,
+) -> str | None:
     api_key = (cfg.get("aiApiKey") or cfg.get("ai_api_key") or "").strip()
-    if not api_key or not cfg.get("useAi"):
+    if not api_key:
+        return None
+    if use_ai_flag and not cfg.get("useAi"):
         return None
 
     base_url = (cfg.get("aiBaseUrl") or "https://openrouter.ai/api/v1").rstrip("/")
-    model = cfg.get("aiModel") or cfg.get("ai_model") or "openai/gpt-4o-mini"
+    model = (
+        cfg.get("aiModel")
+        or cfg.get("ai_model")
+        or "meta-llama/llama-3.2-3b-instruct:free"
+    )
 
-    system = (
-        "Ты живой пользователь TikTok. Напиши ОДИН короткий ответ на чужой комментарий. "
-        "Только русский язык, до 150 символов, естественно, без кавычек и рекламы."
-    )
-    user = (
-        f"Комментарий: {parent_text[:300] or '(пусто)'}\n"
-        f"Описание видео: {caption[:300] or '(нет)'}\n"
-        f"Стиль/шаблон: {template[:200] or '(любой)'}\n"
-        "Верни только текст ответа."
-    )
     payload = {
         "model": model,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        "max_tokens": 120,
-        "temperature": 0.9,
+        "max_tokens": 160,
+        "temperature": temperature,
     }
     req = urllib.request.Request(
         f"{base_url}/chat/completions",
@@ -99,23 +133,52 @@ def _ai_rewrite(parent_text: str, caption: str, template: str, cfg: dict) -> str
             data = json.loads(resp.read().decode("utf-8"))
         text = (data.get("choices") or [{}])[0].get("message", {}).get("content", "")
         text = (text or "").strip().strip('"').strip("«»").strip()
+        if text:
+            text = humanize_tiktok_comment(text)
         return text[:150] if text else None
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError, IndexError):
         return None
 
 
+def _ai_rewrite(parent_text: str, caption: str, service_template: str, cfg: dict) -> str | None:
+    if parent_offers_service(parent_text):
+        return None
+    for attempt in range(2):
+        system, user = _build_ai_messages(
+            parent_text, caption, service_template, strict=attempt > 0
+        )
+        temp = 0.92 if attempt == 0 else 0.75
+        text = _call_chat_api(cfg, system, user, use_ai_flag=True, temperature=temp)
+        if text and is_valid_tiktok_comment(text):
+            return text
+    return None
+
+
 def generate_reply_text(parent_text: str, caption: str, cfg: dict, state: dict | None = None) -> str | None:
-    template = _pick_from_pool(cfg, state)
+    if parent_offers_service(parent_text):
+        return None
+
+    service_template = _pick_from_pool(cfg, state)
+    use_ai = bool(cfg.get("useAi"))
     text = None
 
-    if cfg.get("useAi"):
-        text = _ai_rewrite(parent_text, caption, template, cfg)
+    if use_ai:
+        if service_template:
+            text = _ai_rewrite(parent_text, caption, service_template, cfg)
+        else:
+            text = _ai_rewrite(parent_text, caption, "", cfg)
 
-    if not text and template:
-        text = template
+    if not text and service_template:
+        text = service_template
     elif not text:
         text = random.choice(["согласен", "в точку", "класс", "так и есть", "огонь"])
 
     if not text:
         return None
-    return text[:150].strip()
+
+    text = text[:150].strip()
+    if use_ai:
+        text = humanize_tiktok_comment(text)
+    if use_ai or cfg.get("applyHomoglyphs", cfg.get("apply_homoglyphs", True)):
+        text = apply_homoglyphs(text)
+    return text

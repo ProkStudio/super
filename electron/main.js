@@ -170,6 +170,7 @@ ipcMain.handle('settings:validateYoutube', async () => {
 });
 
 ipcMain.handle('settings:testAi', () => deepseek.testConnection());
+ipcMain.handle('settings:testTiktokComment', (_, opts) => deepseek.testTiktokComment(opts || {}));
 
 // System
 ipcMain.handle('system:status', async () => getSystemStatus(store.getSettings()));

@@ -397,9 +397,21 @@
     "aiApiKey": "API key",
     "aiTestOk": "Connection successful",
     "aiTestFail": "Connection failed",
+    "aiTiktokTestTitle": "TikTok reply test",
+    "aiTiktokTestDesc": "AI reads the comment, matches the topic, and weaves in your offer. Cyrillic о/а/у/е are replaced with Latin lookalikes.",
+    "aiTiktokTestParent": "Parent comment",
+    "aiTiktokTestCaption": "Video caption (optional)",
+    "aiTiktokTestCaptionPh": "What the video is about",
+    "aiTiktokTestTemplate": "Offer template / pool",
+    "aiTiktokTestBtn": "Generate reply",
+    "aiTiktokTestReply": "Reply",
+    "aiTiktokTestSkipped": "Skipped: author already sells a service",
     "aiPreset": {
       "deepseek": "DeepSeek",
-      "openrouter": "OpenRouter (Nemotron free)"
+      "openrouter_fast": "OpenRouter — Llama 3.2 3B (fast, free)",
+      "openrouter_router": "OpenRouter — auto free",
+      "openrouter_llama70": "OpenRouter — Llama 3.3 70B (free)",
+      "openrouter_nemotron": "OpenRouter — Nemotron (free)"
     },
     "installed": "Installed",
     "notFound": "Not found",

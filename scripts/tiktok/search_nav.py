@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 from common.utils import progress, random_delay
 from common.human_sim import HumanSimulator
+from tiktok.page_health import is_challenge_page, is_waf_confirmed
 
 FYP_URL = 'https://www.tiktok.com/ru-RU/'
 
@@ -35,9 +36,13 @@ _VIDEO_TAB_SELECTORS = (
 
 _USER_TAB_SELECTORS = (
     '[data-e2e="search-user-tab"]',
+    'span:has-text("People")',
+    'span:has-text("Люди")',
     'span:has-text("Users")',
     'span:has-text("Аккаунты")',
     'span:has-text("Пользователи")',
+    'button:has-text("People")',
+    'button:has-text("Люди")',
 )
 
 _SIDEBAR_SEARCH_TRIGGERS = (
@@ -159,16 +164,67 @@ def click_videos_tab(page, human) -> bool:
     return False
 
 
-def click_users_tab(page, human) -> bool:
-    for sel in _USER_TAB_SELECTORS:
+def click_users_tab(page, human, retries: int = 3) -> bool:
+    for attempt in range(retries):
+        for sel in _USER_TAB_SELECTORS:
+            try:
+                loc = page.locator(sel).first
+                if loc.count() > 0 and loc.is_visible(timeout=2500):
+                    human.human_click(loc)
+                    random_delay(2.0, 3.5)
+                    return True
+            except Exception:
+                continue
+        if attempt < retries - 1:
+            random_delay(1.2, 2.0)
+    return False
+
+
+def _wait_search_page_ready(page, timeout_sec: float = 24.0) -> bool:
+    """Страница поиска открылась и появились вкладки или результаты."""
+    deadline = time.time() + timeout_sec
+    while time.time() < deadline:
+        url = (page.url or '').lower()
+        if '/search' not in url:
+            time.sleep(0.45)
+            continue
         try:
-            loc = page.locator(sel).first
-            if loc.count() > 0 and loc.is_visible(timeout=1500):
-                human.human_click(loc)
-                random_delay(1.0, 1.8)
+            tabs = page.locator(
+                '[data-e2e="search-user-tab"], [data-e2e="search_video-tab"], a[href*="/search/"]'
+            )
+            users = page.locator('a[href*="/@"]')
+            if tabs.count() > 0 or users.count() > 0:
                 return True
         except Exception:
-            continue
+            pass
+        time.sleep(0.5)
+    return '/search' in (page.url or '').lower()
+
+
+def _wait_user_search_results(page, username: str, timeout_sec: float = 22.0) -> bool:
+    """Вкладка «Люди» — ждём карточку нужного @user."""
+    user = (username or '').strip().lstrip('@').lower()
+    if not user:
+        return False
+    deadline = time.time() + timeout_sec
+    while time.time() < deadline:
+        try:
+            clicked = page.evaluate(
+                """(user) => {
+                  const links = Array.from(document.querySelectorAll('a[href*="/@"]'));
+                  return links.some((a) => {
+                    const href = (a.getAttribute('href') || a.href || '').toLowerCase();
+                    const m = href.match(/\\/@([^/?#]+)/);
+                    return m && m[1] === user;
+                  });
+                }""",
+                user,
+            )
+            if clicked:
+                return True
+        except Exception:
+            pass
+        time.sleep(0.55)
     return False
 
 
@@ -287,9 +343,11 @@ def run_tiktok_search(page, human, keyword, label='', stage='tiktok_warmup', vid
             human.human_type(search_input, kw, clear=True)
             random_delay(0.4, 0.9)
             page.keyboard.press('Enter')
-            random_delay(2.0, 3.5)
             if videos_tab:
+                random_delay(2.5, 4.0)
                 click_videos_tab(page, human)
+            else:
+                random_delay(3.5, 5.5)
             opened_via_input = True
         except Exception:
             opened_via_input = False
@@ -407,7 +465,7 @@ def navigate_same_tab(page, url: str) -> bool:
 
 
 def open_profile_via_search(page, human, username: str, label='', stage='tiktok_smart_comment') -> bool:
-    """Поиск в TikTok → вкладка «Аккаунты» → профиль @user."""
+    """Поиск в TikTok → вкладка «Люди» → профиль @user."""
     user = (username or '').strip().lstrip('@')
     if not user:
         return False
@@ -423,12 +481,33 @@ def open_profile_via_search(page, human, username: str, label='', stage='tiktok_
 
     if not run_tiktok_search(page, human, user, label=label, stage=stage, videos_tab=False):
         return False
-    random_delay(1.5, 2.5)
-    click_users_tab(page, human)
-    random_delay(1.0, 1.8)
-    if click_profile_by_username(page, human, user):
-        random_delay(2.0, 3.0)
-        return f'/@{user}' in (page.url or '').lower()
+
+    random_delay(2.5, 4.0)
+    _wait_search_page_ready(page, timeout_sec=26.0)
+
+    if not click_users_tab(page, human, retries=4):
+        progress(stage, None, f'{label}: вкладка «Люди» не найдена, повтор…' if label else 'вкладка «Люди» не найдена')
+        random_delay(1.5, 2.5)
+        click_users_tab(page, human, retries=2)
+
+    random_delay(2.0, 3.5)
+    _wait_user_search_results(page, user, timeout_sec=24.0)
+
+    for attempt in range(5):
+        if click_profile_by_username(page, human, user):
+            random_delay(2.5, 4.0)
+            if _wait_profile_url(page, user, timeout_sec=24.0):
+                return True
+            if f'/@{user}' in (page.url or '').lower():
+                return True
+        try:
+            page.evaluate('() => window.scrollBy(0, Math.floor(window.innerHeight * 0.55))')
+        except Exception:
+            pass
+        random_delay(1.2, 2.2)
+        if attempt == 2 and not click_users_tab(page, human, retries=2):
+            random_delay(1.5, 2.5)
+
     return False
 
 
@@ -453,12 +532,14 @@ def open_video_on_profile_grid(page, human, video_id: str, max_attempts: int = 1
     return False
 
 
-def _wait_profile_url(page, username: str, timeout_sec=18.0) -> bool:
+def _wait_profile_url(page, username: str, timeout_sec=22.0) -> bool:
     user = (username or '').strip().lstrip('@').lower()
     if not user:
         return False
     deadline = time.time() + timeout_sec
     while time.time() < deadline:
+        if _profile_navigation_blocked(page):
+            return False
         url = (page.url or '').lower()
         if f'/@{user}' in url and '/video/' not in url:
             return True
@@ -490,39 +571,89 @@ def open_video_via_search_videos(page, human, username: str, video_id: str, labe
     return False
 
 
-def open_video_from_profile(page, human, username: str, video_id: str, label='', stage='tiktok_smart_comment') -> bool:
-    """Прямой URL профиля → сетка → точный video_id. Без возврата в Рекомендации."""
+def _profile_navigation_blocked(page) -> bool:
+    """Прямой @profile часто даёт WAF «Please wait» — не ждём бесконечно."""
+    if is_challenge_page(page):
+        return True
+    return is_waf_confirmed(page, stuck_sec=5.0)
+
+
+def _open_profile_direct(page, human, username: str, label='', stage='tiktok_smart_comment') -> bool:
+    """Прямой URL профиля — только последний fallback после поиска в TikTok."""
     user = (username or '').strip().lstrip('@')
-    vid = str(video_id or '').strip()
-    if not user or not vid:
+    if not user:
         return False
 
+    profile_url = f'https://www.tiktok.com/@{user}'
     progress(
         stage,
         None,
-        f'{label}: открываю профиль @{user}' if label else f'профиль @{user}',
+        f'{label}: прямой переход @{user} (fallback)' if label else f'прямой @{user}',
     )
-
-    profile_url = f'https://www.tiktok.com/@{user}'
     try:
         human.goto(profile_url, wait_until='domcontentloaded', timeout=60000)
     except Exception:
         navigate_same_tab(page, profile_url)
 
     random_delay(2.0, 3.5)
+    if _profile_navigation_blocked(page):
+        return False
 
-    if not _wait_profile_url(page, user):
+    if not _wait_profile_url(page, user, timeout_sec=12.0):
+        if _profile_navigation_blocked(page):
+            return False
         try:
             page.evaluate('(u) => { window.location.assign(u); }', profile_url)
             random_delay(2.5, 4.0)
         except Exception:
             pass
 
-    if not _wait_profile_url(page, user):
-        progress(stage, None, f'{label}: не удалось открыть профиль @{user}' if label else f'профиль @{user} недоступен')
+    if _profile_navigation_blocked(page):
+        return False
+    return _wait_profile_url(page, user, timeout_sec=10.0)
+
+
+def open_video_from_profile(page, human, username: str, video_id: str, label='', stage='tiktok_smart_comment') -> bool:
+    """Видео: поиск @user → вкладка «Люди» → профиль → сетка. Видео-вкладка — fallback."""
+    user = (username or '').strip().lstrip('@')
+    vid = str(video_id or '').strip()
+    if not user or not vid:
         return False
 
-    return open_video_on_profile_grid(page, human, vid)
+    if wait_video_with_id(page, vid, timeout_sec=2.5):
+        return True
+
+    progress(
+        stage,
+        None,
+        f'{label}: @{user} → поиск → «Люди»' if label else f'@{user} → Люди',
+    )
+    if open_profile_via_search(page, human, user, label=label, stage=stage):
+        if _profile_navigation_blocked(page):
+            return False
+        if open_video_on_profile_grid(page, human, vid):
+            return True
+
+    if _profile_navigation_blocked(page):
+        return False
+
+    progress(
+        stage,
+        None,
+        f'{label}: fallback — поиск видео @{user}' if label else f'fallback видео @{user}',
+    )
+    if open_video_via_search_videos(page, human, user, vid, label=label, stage=stage):
+        return True
+
+    if _profile_navigation_blocked(page):
+        return False
+
+    if _open_profile_direct(page, human, user, label=label, stage=stage):
+        if _profile_navigation_blocked(page):
+            return False
+        return open_video_on_profile_grid(page, human, vid)
+
+    return False
 
 
 def click_profile_by_username(page, human, username: str) -> bool:
@@ -532,13 +663,14 @@ def click_profile_by_username(page, human, username: str) -> bool:
     try:
         clicked = page.evaluate(
             """(user) => {
-              const links = Array.from(document.querySelectorAll('a[href^="/@"]'));
+              const links = Array.from(document.querySelectorAll('a[href*="/@"]'));
               for (const a of links) {
-                const href = (a.getAttribute('href') || '').toLowerCase();
-                if (!href.startsWith('/@' + user) && !href.startsWith('/@' + user + '/')) continue;
-                if (!href.match(/^\\/@([^/]+)\\/?$/)) continue;
+                const raw = (a.getAttribute('href') || a.href || '').toLowerCase();
+                const m = raw.match(/\\/@([^/?#]+)/);
+                if (!m || m[1] !== user) continue;
+                if (raw.includes('/video/')) continue;
                 const r = a.getBoundingClientRect();
-                if (r.width < 20 || r.height < 12) continue;
+                if (r.width < 16 || r.height < 10) continue;
                 a.scrollIntoView({ block: 'center', behavior: 'instant' });
                 a.click();
                 return true;
@@ -548,19 +680,24 @@ def click_profile_by_username(page, human, username: str) -> bool:
             user,
         )
         if clicked:
-            random_delay(2.0, 3.0)
-            return f'/@{user}' in (page.url or '').lower()
+            random_delay(2.5, 4.0)
+            return f'/@{user}' in (page.url or '').lower() or _wait_profile_url(page, user, timeout_sec=8.0)
     except Exception:
         pass
 
     try:
-        loc = page.locator(f'a[href="/@{user}"], a[href^="/@{user}/"]')
-        for i in range(min(loc.count(), 8)):
+        loc = page.locator(f'a[href*="/@{user}"]')
+        for i in range(min(loc.count(), 16)):
             link = loc.nth(i)
-            if link.is_visible(timeout=1200):
-                human.human_click(link)
-                random_delay(2.0, 3.0)
-                return f'/@{user}' in (page.url or '').lower()
+            href = (link.get_attribute('href') or '').lower()
+            if '/video/' in href:
+                continue
+            if not link.is_visible(timeout=2000):
+                continue
+            human.human_click(link)
+            random_delay(2.5, 4.0)
+            if f'/@{user}' in (page.url or '').lower() or _wait_profile_url(page, user, timeout_sec=10.0):
+                return True
     except Exception:
         pass
     return False

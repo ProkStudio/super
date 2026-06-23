@@ -43,6 +43,7 @@ const DEFAULT_SMART_COMMENT_CONFIG = {
   commentMaxAgeDays: 7,
   skipPinned: false,
   skipOwn: true,
+  skipCompetitorOffers: true,
   rootCommentEnabled: false,
   useAi: false,
   commentsPerVideo: 20,
@@ -189,6 +190,11 @@ export default function TikTokAutomation() {
       }
       if (!commentPool.length && !config.useAi) {
         showToast(t('tiktok.automation.needCommentPool'), 'error');
+        setRunning(false);
+        return;
+      }
+      if (config.useAi && !commentPool.length) {
+        showToast(t('tiktok.automation.needOfferPoolForAi'), 'error');
         setRunning(false);
         return;
       }
@@ -491,7 +497,9 @@ export default function TikTokAutomation() {
                 </select>
                 <div className="flex items-center gap-2">
                   <Toggle checked={config.useAi} onChange={(v) => patchConfig({ useAi: v })} />
-                  <span className="text-sm">{t('tiktok.automation.comment.useAi')}</span>
+                  <FieldHint text={t('tiktok.automation.comment.useAiHint')}>
+                    <span className="text-sm">{t('tiktok.automation.comment.useAi')}</span>
+                  </FieldHint>
                 </div>
               </div>
             </div>
@@ -539,6 +547,12 @@ export default function TikTokAutomation() {
                     <Toggle checked={config.skipOwn} onChange={(v) => patchConfig({ skipOwn: v })} />
                     <FieldHint text={t('tiktok.automation.comment.skipOwnHint')}>
                       <span className="text-sm">{t('tiktok.automation.comment.skipOwn')}</span>
+                    </FieldHint>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Toggle checked={config.skipCompetitorOffers !== false} onChange={(v) => patchConfig({ skipCompetitorOffers: v })} />
+                    <FieldHint text={t('tiktok.automation.comment.skipCompetitorHint')}>
+                      <span className="text-sm">{t('tiktok.automation.comment.skipCompetitor')}</span>
                     </FieldHint>
                   </div>
                   <div className="flex items-center gap-2">

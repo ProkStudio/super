@@ -82,6 +82,21 @@ def _detect_status(page, human=None):
     return 'logged_out', None
 
 
+def resolve_tiktok_username(page, human=None, session=None, label: str = '') -> str:
+    """Реальный @ник TikTok (не profileId вроде 9d7f03ee)."""
+    session = session or {}
+    meta = (session.get('tiktokUsername') or '').strip().lstrip('@')
+    if meta and not (len(meta) <= 12 and meta.isalnum()):
+        return meta
+    _, detected = _detect_status(page, human)
+    if detected:
+        return str(detected).strip().lstrip('@')
+    login = (session.get('login') or label or '').strip().lstrip('@')
+    if login and not (len(login) <= 12 and login.isalnum()):
+        return login
+    return login
+
+
 def run_session(page, label, session, index, total, config):
     base_pct = int((index / max(total, 1)) * 100)
     human = HumanSimulator(page)

@@ -1,6 +1,6 @@
 {
   "name": "techpro",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "TechPro — YouTube channel management, automation, uniqualization & analytics",
   "main": "electron/main.js",
   "author": "TechPro",
@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "npm run build:win",
-    "build:win": "powershell -ExecutionPolicy Bypass -File scripts/bundle_python.ps1 && vite build && electron-builder --win",
+    "build:win": "powershell -ExecutionPolicy Bypass -File scripts/bundle_python.ps1 && vite build && electron-builder --win && powershell -ExecutionPolicy Bypass -File scripts/clean_release.ps1",
     "build:publish": "powershell -ExecutionPolicy Bypass -File scripts/bundle_python.ps1 && vite build && electron-builder --win --publish always",
     "build:frontend": "vite build",
     "bundle:python": "powershell -ExecutionPolicy Bypass -File scripts/bundle_python.ps1",
@@ -96,11 +96,11 @@
       "language": "1049",
       "shortcutName": "TechPro",
       "uninstallDisplayName": "TechPro",
-      "artifactName": "${productName} Setup ${version}.${ext}",
+      "artifactName": "TechPro-Setup-${version}.${ext}",
       "deleteAppDataOnUninstall": false
     },
     "portable": {
-      "artifactName": "${productName} ${version}.${ext}"
+      "artifactName": "TechPro ${version}.${ext}"
     },
     "publish": {
       "provider": "github",

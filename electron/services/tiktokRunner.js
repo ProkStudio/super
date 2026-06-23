@@ -96,14 +96,64 @@ function updateTiktokMeta(profileId, patch) {
   store.setProfiles({ ...profiles, meta });
 }
 
+async function closeProfilesBeforeOpen(profileIds, browserType) {
+  await Promise.all(profileIds.map(async (profileId) => {
+    try {
+      await browserProfiles.closeBrowser(profileId, browserType);
+    } catch { /* ignore */ }
+  }));
+  if (profileIds.length) {
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+}
+
 async function openProfileSession(profileId, browserType, send) {
   const meta = store.getProfiles().meta?.[profileId] || {};
   const label = meta.tiktokUsername || profileId.slice(0, 8);
   pushLog(send, `Открываю профиль ${label}…`);
-  const data = await browserProfiles.openBrowser(profileId, browserType);
+  const openPromise = browserProfiles.openBrowser(profileId, browserType);
+  const timeoutMs = 125000;
+  const data = await Promise.race([
+    openPromise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`таймаут открытия профиля (${timeoutMs / 1000}с)`)), timeoutMs);
+    }),
+  ]);
   const cdpUrl = data.http || data.cdpUrl || data.ws;
   if (!cdpUrl) throw new Error('Браузер не вернул CDP URL');
-  return { profileId, cdpUrl, login: label };
+  pushLog(send, `${label}: браузер открыт`);
+  const tiktokUsername = meta.tiktokUsername || null;
+  return { profileId, cdpUrl, login: label, tiktokUsername };
+}
+
+async function openProfileSessionsSequential(profileIds, browserType, send) {
+  const sessions = [];
+  const openedProfiles = [];
+  const errors = [];
+  const staggerMs = 2500;
+
+  if (profileIds.length) {
+    pushLog(send, `Закрываю ${profileIds.length} проф. перед запуском…`);
+    await closeProfilesBeforeOpen(profileIds, browserType);
+  }
+
+  for (let i = 0; i < profileIds.length; i += 1) {
+    if (abortAutomation) break;
+    const profileId = profileIds[i];
+    try {
+      const session = await openProfileSession(profileId, browserType, send);
+      sessions.push(session);
+      openedProfiles.push(profileId);
+      if (i < profileIds.length - 1) {
+        await new Promise((r) => setTimeout(r, staggerMs));
+      }
+    } catch (e) {
+      const msg = browserProfiles.connector(browserType).extractError?.(e) || e.message;
+      errors.push({ profileId, error: msg });
+      pushLog(send, `${profileId.slice(0, 8)}: ${msg}`, 'error');
+    }
+  }
+  return { sessions, openedProfiles, errors };
 }
 
 async function runScriptBatch({
@@ -114,6 +164,7 @@ async function runScriptBatch({
   send,
   modeLabel,
   onSessionResult,
+  onScriptProgress,
 }) {
   if (automationRunning) return { ok: false, error: 'Автоматизация уже выполняется' };
   const ids = (profileIds || []).filter(Boolean);
@@ -135,21 +186,16 @@ async function runScriptBatch({
     for (let bi = 0; bi < batches.length; bi += 1) {
       if (abortAutomation) break;
       const batch = batches[bi];
-      const sessions = [];
-      const openedProfiles = [];
-
-      await Promise.all(batch.map(async (profileId) => {
-        if (abortAutomation) return;
-        try {
-          const session = await openProfileSession(profileId, browserType, send);
-          sessions.push(session);
-          openedProfiles.push(profileId);
-        } catch (e) {
-          const msg = browserProfiles.connector(browserType).extractError?.(e) || e.message;
-          allResults.push({ profileId, error: msg, tiktokStatus: 'error' });
-          pushLog(send, `${profileId.slice(0, 8)}: ${msg}`, 'error');
-        }
-      }));
+      const { sessions, openedProfiles, errors: openErrors } = await openProfileSessionsSequential(
+        batch,
+        browserType,
+        send,
+      );
+      allResults.push(...openErrors.map((e) => ({
+        profileId: e.profileId,
+        error: e.error,
+        tiktokStatus: 'error',
+      })));
 
       if (!sessions.length || abortAutomation) continue;
 
@@ -160,6 +206,7 @@ async function runScriptBatch({
           scriptName,
           { profileIds: batch, sessions, threads: sessions.length, ...config },
           (p) => {
+            onScriptProgress?.(p);
             if (p?.message) pushLog(send, p.message);
             if (p?.percent != null) send?.('tiktok:automation:progress', p);
           },
@@ -170,6 +217,17 @@ async function runScriptBatch({
           if (stat?.profileId && onSessionResult) onSessionResult(stat);
         }
         allResults.push(...scriptResults);
+      } catch (scriptErr) {
+        const msg = scriptErr?.message || String(scriptErr);
+        pushLog(send, msg, 'error');
+        for (const s of sessions) {
+          allResults.push({
+            profileId: s.profileId,
+            login: s.login,
+            error: msg,
+            tiktokStatus: 'error',
+          });
+        }
       } finally {
         await Promise.all(openedProfiles.map(async (profileId) => {
           const stat = scriptResults.find((s) => s.profileId === profileId);
@@ -295,6 +353,9 @@ async function runSmartComment(opts, send) {
   if (!commentPool.length && !baseConfig.useAi) {
     return { ok: false, error: 'Заполните пул комментариев или включите AI' };
   }
+  if (baseConfig.useAi && !commentPool.length) {
+    return { ok: false, error: 'При AI укажите шаблоны оффера в пуле комментариев' };
+  }
 
   const tiktokData = store.getTiktok();
   const config = {
@@ -304,7 +365,7 @@ async function runSmartComment(opts, send) {
     pagePreferDomains: ['tiktok.com'],
     aiApiKey: store.getSecret('deepseekKey') || '',
     aiBaseUrl: settings.aiBaseUrl || 'https://openrouter.ai/api/v1',
-    aiModel: settings.aiModel || 'openai/gpt-4o-mini',
+    aiModel: settings.aiModel || 'meta-llama/llama-3.2-3b-instruct:free',
     repliedKeys: tiktokData.repliedKeys || [],
     keepBrowserOpen: baseConfig.keepBrowserOpen,
   };
@@ -316,6 +377,11 @@ async function runSmartComment(opts, send) {
     config,
     send,
     modeLabel: 'smart_comment',
+    onScriptProgress: (p) => {
+      if (p?.type === 'repliedKeys' && p.keys?.length) {
+        mergeRepliedKeys(p.keys);
+      }
+    },
     onSessionResult: (stat) => {
       if (stat?.repliedKeys?.length) mergeRepliedKeys(stat.repliedKeys);
       if (stat?.videoStats?.length) mergeCommentStatsFromSession(stat);

@@ -238,7 +238,16 @@ class HumanSimulator:
             return random.uniform(base * 1.0, base * 2.5)
         return random.uniform(base * 0.45, base * 1.4)
 
-    def human_type(self, locator, text, *, clear=True, verify=True, base_delay_ms=55):
+    def human_type(
+        self,
+        locator,
+        text,
+        *,
+        clear=True,
+        verify=True,
+        base_delay_ms=55,
+        micro_pause_every: int = 0,
+    ):
         """Type text character-by-character with variable speed."""
         text = '' if text is None else str(text)
 
@@ -254,9 +263,14 @@ class HumanSimulator:
             self.page.keyboard.press('Delete')
             self.human_delay(0.05, 0.12)
 
+        self.human_delay(0.18, 0.42)
+
         prev = None
-        for ch in text:
+        for i, ch in enumerate(text):
             time.sleep(self._char_delay(ch, prev, base_delay_ms))
+            if micro_pause_every > 0 and i > 0 and i % micro_pause_every == 0:
+                if random.random() < 0.42:
+                    self.human_delay(0.12, 0.38)
             self.page.keyboard.insert_text(ch)
             prev = ch
 

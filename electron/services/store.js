@@ -55,7 +55,7 @@ const DEFAULT_SETTINGS = {
   activeModule: 'youtube',
   moduleLastRoute: {},
   aiBaseUrl: 'https://openrouter.ai/api/v1',
-  aiModel: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+  aiModel: 'meta-llama/llama-3.2-3b-instruct:free',
 };
 
 const store = new Store({

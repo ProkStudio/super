@@ -37,6 +37,17 @@ def progress(stage, percent, message=''):
     print(f'PROGRESS:{json.dumps({"stage": stage, "percent": percent, "message": message}, ensure_ascii=False)}', flush=True)
 
 
+def emit_replied_keys(keys) -> None:
+    """Сразу сохранить dedup-ключи в Electron (переживает обрыв сессии)."""
+    items = [str(k) for k in (keys or []) if k]
+    if not items:
+        return
+    print(
+        f'PROGRESS:{json.dumps({"type": "repliedKeys", "keys": items}, ensure_ascii=False)}',
+        flush=True,
+    )
+
+
 def result(data):
     print(f'RESULT:{json.dumps(data, ensure_ascii=False)}', flush=True)
 
